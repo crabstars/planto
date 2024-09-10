@@ -41,7 +41,7 @@ public class Planto
                                       LEFT JOIN information_schema.constraint_column_usage ccu
                                           ON rc.unique_constraint_name = ccu.constraint_name
                                       WHERE 
-                                          c.table_name = 'orders';
+                                          c.table_name = 'customers';
                                       """;
      public List<ColumnInfo> GetColumnInfo(string connectionString, string tableName)
      {
@@ -97,12 +97,12 @@ public class Planto
          builder.Append(')');
          builder.Append("Values");
          builder.Append('(');
-         builder.AppendJoin(",", columns.Select(c => Activator.CreateInstance(c.DataType)));
+         builder.AppendJoin(",", columns.Select(c =>CreateDefaultValue(c.DataType)));
          builder.Append(')');
          return builder.ToString();
      }
      
-     private static Type MapToSystemType(string pgType)
+     private static object MapToSystemType(string pgType)
      {
          switch (pgType.ToLower())
          {
@@ -140,6 +140,38 @@ public class Planto
              default:
                  return typeof(object);
          }
+     }
+     
+     private static object CreateDefaultValue(Type type)
+     {
+         if (type == typeof(string))
+             return "''";
+         else if (type == typeof(int))
+             return 0;
+         else if (type == typeof(long))
+             return 0L;
+         else if (type == typeof(float))
+             return 0.0f;
+         else if (type == typeof(double))
+             return 0.0d;
+         else if (type == typeof(decimal))
+             return 0.0m;
+         else if (type == typeof(bool))
+             return false;
+         else if (type == typeof(DateTime))
+             return DateTime.MinValue;
+         else if (type == typeof(DateTimeOffset))
+             return DateTimeOffset.MinValue;
+         else if (type == typeof(TimeSpan))
+             return TimeSpan.Zero;
+         else if (type == typeof(Guid))
+             return Guid.Empty;
+         else if (type == typeof(byte[]))
+             return new byte[0];
+         else if (type.IsValueType)
+             return Activator.CreateInstance(type);
+         else
+             return null;
      }
 
      
