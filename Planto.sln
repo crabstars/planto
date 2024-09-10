@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Planto", "Planto\Planto.csproj", "{A62C605C-4E25-4CBA-9E95-0EDD29574981}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Planto.Test", "Planto.Test\Planto.Test.csproj", "{908C181B-718C-4D5B-91FE-B29839961D96}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A62C605C-4E25-4CBA-9E95-0EDD29574981}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A62C605C-4E25-4CBA-9E95-0EDD29574981}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A62C605C-4E25-4CBA-9E95-0EDD29574981}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A62C605C-4E25-4CBA-9E95-0EDD29574981}.Release|Any CPU.Build.0 = Release|Any CPU
+		{908C181B-718C-4D5B-91FE-B29839961D96}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{908C181B-718C-4D5B-91FE-B29839961D96}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{908C181B-718C-4D5B-91FE-B29839961D96}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{908C181B-718C-4D5B-91FE-B29839961D96}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
