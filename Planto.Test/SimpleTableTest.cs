@@ -1,16 +1,40 @@
+using System.Data;
 using System.Data.Common;
+using Npgsql;
+using Testcontainers.PostgreSql;
 using Xunit;
 
 namespace Planto.Test;
 
-public class SimpleTableTest
+public class SimpleTableTest : IAsyncLifetime
 {
-    [Fact]
-    public void TestColumnTypes()
-    {
-        var planto = new Planto();
+    private readonly PostgreSqlContainer _postgreSqlContainer = new PostgreSqlBuilder()
+        .Build();
 
-        var res = planto.GetColumnInfo("Host=localhost;Port=5433;Username=postgres;Password=example;Database=exampledb", "orders");
-        Assert.NotNull(res);
+    public Task InitializeAsync()
+    {
+        return _postgreSqlContainer.StartAsync();
     }
+
+    public Task DisposeAsync()
+    {
+        return _postgreSqlContainer.DisposeAsync().AsTask();
+    }
+
+    [Fact]
+    public void ConnectionStateReturnsOpen()
+    {
+        // Given
+        using DbConnection connection = new NpgsqlConnection(_postgreSqlContainer.GetConnectionString());
+        var script = File.ReadAllText("../../../Infrastructure/init.sql");
+        _postgreSqlContainer.ExecScriptAsync(script).ConfigureAwait(true);
+        
+        var planto = new Planto();
+        var res = planto.GetColumnInfo2("orders", connection);
+        var insertStatement = planto.CreateInsertStatement(res, "customers");
+
+        // Then
+        Assert.Equal(ConnectionState.Open, connection.State);
+    }
+
 }
