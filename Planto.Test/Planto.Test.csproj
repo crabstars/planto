@@ -10,6 +10,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="FluentAssertions" Version="6.12.1"/>
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.0"/>
         <PackageReference Include="Npgsql" Version="8.0.3" />
         <PackageReference Include="Testcontainers.PostgreSql" Version="3.10.0" />
