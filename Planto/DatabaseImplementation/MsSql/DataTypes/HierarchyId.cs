@@ -4,6 +4,6 @@ public class HierarchyId : IMsSqlDataType
 {
     public string GetDefaultValue()
     {
-        return "0x0";
+        return "0x";
     }
 }
