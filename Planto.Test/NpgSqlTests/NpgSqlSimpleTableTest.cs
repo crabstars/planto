@@ -75,7 +75,7 @@ public class NpgSqlSimpleTableTest : IAsyncLifetime
         var planto = new Planto(_postgreSqlContainer.GetConnectionString(), DbmsType.NpgSql);
 
         // Act
-        var res = planto.GetColumnInfo(TableName);
+        var res = await planto.GetColumnInfo(TableName);
 
         // Assert
         res.Should().HaveCount(3);

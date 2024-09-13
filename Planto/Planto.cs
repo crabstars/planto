@@ -1,7 +1,11 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.Collections.Concurrent;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Planto.DatabaseImplementation;
 using Planto.DatabaseImplementation.NpgSql;
+
+[assembly: InternalsVisibleTo("Planto.Test")]
 
 namespace Planto;
 
@@ -23,22 +27,22 @@ public class Planto
         };
     }
 
-    public string CreateInsertStatement(List<ColumnInfo> columns, string tableName)
+    internal string CreateInsertStatement(List<ColumnInfo> columns, string tableName)
     {
         return _dbSchemaHelper.CreateInsertStatement(columns, tableName);
     }
 
-    public List<ColumnInfo> GetColumnInfo(string tableName)
+    internal async Task<List<ColumnInfo>> GetColumnInfo(string tableName)
     {
-        using var connection = _dbSchemaHelper.GetOpenConnection(_connectionString);
+        await using var connection = _dbSchemaHelper.GetOpenConnection(_connectionString);
 
-        using var command = connection.CreateCommand();
+        await using var command = connection.CreateCommand();
         command.CommandText = _dbSchemaHelper.GetColumnInfoSql(tableName);
-        var dataReader = command.ExecuteReader();
+        var dataReader = await command.ExecuteReaderAsync();
 
         var result = new List<ColumnInfo>();
 
-        while (dataReader.Read())
+        while (await dataReader.ReadAsync())
         {
             var columnInfo = new ColumnInfo();
             var properties = typeof(ColumnInfo).GetProperties();
@@ -80,4 +84,41 @@ public class Planto
 
         return result;
     }
+
+    internal async Task<ExecutionNode> CreateExecutionTree(string tableName)
+    {
+        var newExecutionNode = new ExecutionNode
+        {
+            TableName = tableName,
+            ColumnInfos = await GetColumnInfo(tableName)
+        };
+
+        ParallelOptions parallelOptions = new()
+        {
+            // TODO let user change this when creating new instance
+            MaxDegreeOfParallelism = 3
+        };
+        await Parallel.ForEachAsync(newExecutionNode.ColumnInfos.Where(c => c.IsForeignKey), parallelOptions,
+            async (columnInfo, token) =>
+            {
+                token.ThrowIfCancellationRequested();
+                newExecutionNode.Children.Add(
+                    await CreateExecutionTree(columnInfo.ForeignTableName ?? throw new InvalidOperationException()));
+            });
+
+        return newExecutionNode;
+    }
+
+    public void ExecuteExecutionTree(ExecutionNode executionNode)
+    {
+    }
+}
+
+public class ExecutionNode
+{
+    public string TableName { get; set; }
+    public string InsertStatement { get; set; }
+    public ConcurrentBag<ExecutionNode> Children { get; set; } = [];
+    public object DbEntityId { get; set; }
+    public List<ColumnInfo> ColumnInfos { get; set; }
 }

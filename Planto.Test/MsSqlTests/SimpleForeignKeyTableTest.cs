@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Planto.Test.MsSqlTests;
 
-public class ForeignKeyTableTest : IAsyncLifetime
+public class SimpleForeignKeyTableTest : IAsyncLifetime
 {
     private const string TableName = "table_with_foreign_key";
     private const string ReferenceTableName = "table1";
@@ -65,16 +65,32 @@ public class ForeignKeyTableTest : IAsyncLifetime
     }
 
     [Fact]
-    public void TwoTablesConnectedWithFk_CheckColumnInfo()
+    public async Task TwoTablesConnectedWithFk_CheckColumnInfo()
     {
         // Arrange
         var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
 
         // Act
-        var res = planto.GetColumnInfo(TableName);
+        var res = await planto.GetColumnInfo(TableName);
 
         // Assert
         res.Should().HaveCount(_columnInfos.Count);
         res.Should().BeEquivalentTo(_columnInfos);
+    }
+
+    [Fact]
+    public async Task CreateExecutionTree_For2TableDb()
+    {
+        // Arrange
+        var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
+
+        // Act
+        var resExecutionNode = await planto.CreateExecutionTree(TableName);
+
+        // Assert
+        resExecutionNode.Children.Count.Should().Be(1);
+        resExecutionNode.TableName.Should().Be(TableName);
+        resExecutionNode.Children.Single().TableName.Should().Be(ReferenceTableName);
+        resExecutionNode.Children.Single().Children.Count.Should().Be(0);
     }
 }
