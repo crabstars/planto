@@ -1,6 +1,7 @@
 using System.Data.Common;
 using System.Text;
 using Microsoft.Data.SqlClient;
+using Planto.DatabaseImplementation.DataTypes;
 
 namespace Planto.DatabaseImplementation;
 
@@ -83,8 +84,8 @@ public class MsSql : IDatabaseSchemaHelper
             { "xml", typeof(string) },
             { "json", typeof(string) },
             { "hierarchyid", typeof(HierarchyId) },
-            { "geography", typeof(Geography) }, // example value: geography::Point(0,0, 4326)
-            { "geometry", typeof(Geometry) }, // example value: geometry::STGeomFromText('POINT(0 0)', 0)
+            { "geography", typeof(Geography) },
+            { "geometry", typeof(Geometry) }
         };
 
         if (sqlToCSharpMap.ContainsKey(sqlType.ToLower()))
@@ -138,20 +139,5 @@ public class MsSql : IDatabaseSchemaHelper
         var connection = new SqlConnection(connectionString);
         connection.Open();
         return connection;
-    }
-
-    public class HierarchyId
-    {
-        public static string GetDefaultValue => "0x1";
-    }
-
-    public class Geography
-    {
-        public static string GetDefaultValue => "geography::Point(0,0, 4326)";
-    }
-
-    public class Geometry
-    {
-        public static string GetDefaultValue => "geometry::STGeomFromText('POINT(0 0)', 0)";
     }
 }

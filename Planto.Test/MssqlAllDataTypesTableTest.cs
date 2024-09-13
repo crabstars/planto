@@ -1,5 +1,5 @@
 using FluentAssertions;
-using Planto.DatabaseImplementation;
+using Planto.DatabaseImplementation.DataTypes;
 using Testcontainers.MsSql;
 using Xunit;
 
@@ -404,7 +404,7 @@ public class MssqlAllDataTypesTableTest : IAsyncLifetime
         new()
         {
             IsForeignKey = false,
-            DataType = typeof(MsSql.HierarchyId),
+            DataType = typeof(HierarchyId),
             ForeignColumnName = null,
             ForeignTableName = null,
             Name = "hierarchyid_column",
@@ -415,7 +415,7 @@ public class MssqlAllDataTypesTableTest : IAsyncLifetime
         new()
         {
             IsForeignKey = false,
-            DataType = typeof(MsSql.Geography),
+            DataType = typeof(Geography),
             ForeignColumnName = null,
             ForeignTableName = null,
             Name = "geography_column",
@@ -426,7 +426,7 @@ public class MssqlAllDataTypesTableTest : IAsyncLifetime
         new()
         {
             IsForeignKey = false,
-            DataType = typeof(MsSql.Geometry),
+            DataType = typeof(Geometry),
             ForeignColumnName = null,
             ForeignTableName = null,
             Name = "geometry_column",
