@@ -1,3 +1,7 @@
+using System.Data.Common;
+using System.Text;
+using Npgsql;
+
 namespace Planto.DatabaseImplementation;
 
 public class NpgSql : IDatabaseSchemaHelper
@@ -75,4 +79,29 @@ public class NpgSql : IDatabaseSchemaHelper
         _ when type.IsValueType => Activator.CreateInstance(type),
         _ => null
     };
+
+
+    public string CreateInsertStatement(List<ColumnInfo> columns, string tableName)
+    {
+        var builder = new StringBuilder();
+        builder.Append($"Insert into {tableName} ");
+
+        builder.Append('(');
+        builder.AppendJoin(",", columns.Select(c => c.Name));
+        builder.Append(')');
+        builder.Append("Values");
+        builder.Append('(');
+        builder.AppendJoin(",",
+            columns.Select(c => c.IsPrimaryKey ? "default" : CreateDefaultValue(c.DataType)));
+        builder.Append(')');
+        return builder.ToString();
+    }
+
+
+    public DbConnection GetOpenConnection(string connectionString)
+    {
+        var connection = new NpgsqlConnection(connectionString);
+        connection.Open();
+        return connection;
+    }
 }

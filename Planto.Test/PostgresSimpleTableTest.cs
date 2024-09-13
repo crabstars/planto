@@ -1,6 +1,4 @@
-using System.Data.Common;
 using FluentAssertions;
-using Npgsql;
 using Testcontainers.PostgreSql;
 using Xunit;
 
@@ -73,9 +71,8 @@ public class PostgresSimpleTableTest : IAsyncLifetime
     public async Task SimpleTable_CheckColumnInfo()
     {
         // Arrange
-        await using DbConnection connection = new NpgsqlConnection(_postgreSqlContainer.GetConnectionString());
         await _postgreSqlContainer.ExecScriptAsync(SimpleTableSql).ConfigureAwait(true);
-        var planto = new Planto(connection);
+        var planto = new Planto(_postgreSqlContainer.GetConnectionString(), DbmsType.NpgSql);
 
         // Act
         var res = planto.GetColumnInfo(TableName);
@@ -89,8 +86,7 @@ public class PostgresSimpleTableTest : IAsyncLifetime
     public void CreateInsertForSimpleTable_FromColumnInfo()
     {
         // Arrange
-        using DbConnection connection = new NpgsqlConnection(_postgreSqlContainer.GetConnectionString());
-        var planto = new Planto(connection);
+        var planto = new Planto(_postgreSqlContainer.GetConnectionString(), DbmsType.NpgSql);
 
         // Act
         var insertStatement = planto.CreateInsertStatement(_columnInfos, TableName);

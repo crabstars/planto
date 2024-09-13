@@ -1,13 +1,11 @@
-using System.Data.Common;
 using FluentAssertions;
-using Microsoft.Data.SqlClient;
 using Planto.DatabaseImplementation;
 using Testcontainers.MsSql;
 using Xunit;
 
 namespace Planto.Test;
 
-public class MssqlSimpleTableTest : IAsyncLifetime
+public class MssqlAllDataTypesTableTest : IAsyncLifetime
 {
     private const string TableName = "all_datatypes_table";
 
@@ -441,9 +439,10 @@ public class MssqlSimpleTableTest : IAsyncLifetime
     private readonly MsSqlContainer _msSqlContainer = new MsSqlBuilder()
         .Build();
 
-    public Task InitializeAsync()
+    public async Task InitializeAsync()
     {
-        return _msSqlContainer.StartAsync();
+        await _msSqlContainer.StartAsync();
+        await _msSqlContainer.ExecScriptAsync(AllDataTypesTableSql).ConfigureAwait(true);
     }
 
     public Task DisposeAsync()
@@ -451,14 +450,11 @@ public class MssqlSimpleTableTest : IAsyncLifetime
         return _msSqlContainer.DisposeAsync().AsTask();
     }
 
-    //TODO PK without Identity
     [Fact]
-    public async Task AllTypesTable_CheckColumnInfo()
+    public void AllTypesTable_CheckColumnInfo()
     {
         // Arrange
-        await using DbConnection connection = new SqlConnection(_msSqlContainer.GetConnectionString());
-        await _msSqlContainer.ExecScriptAsync(AllDataTypesTableSql).ConfigureAwait(true);
-        var planto = new Planto(connection);
+        var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
 
         // Act
         var res = planto.GetColumnInfo(TableName);
@@ -469,19 +465,21 @@ public class MssqlSimpleTableTest : IAsyncLifetime
     }
 
     [Fact]
-    public void CreateInsertForSimpleTable_FromColumnInfo()
+    public async Task CreateInsertForSimpleTable_FromColumnInfo()
     {
-        using DbConnection connection = new SqlConnection(_msSqlContainer.GetConnectionString());
-        var planto = new Planto(connection);
+        // Arrange
+        var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
 
         // Act
         var insertStatement = planto.CreateInsertStatement(_columnInfos, TableName);
 
         // Assert
-        insertStatement.Should().Be("Insert into customers (customer_id,customer_name,email)Values(default,'','')");
+        var insertRes = await _msSqlContainer.ExecScriptAsync(insertStatement);
+        insertRes.Stderr.Should().BeEmpty();
     }
 }
 // TODO
+//var retres = await _msSqlContainer.ExecScriptAsync($"Select Count(*) as c from {TableName}");
 // """ Handle following 
 // CREATE TABLE Example (
 //     ID VARCHAR(100) PRIMARY KEY,

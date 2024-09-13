@@ -1,52 +1,37 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.Data.Common;
 using System.Reflection;
-using System.Text;
-using Microsoft.Data.SqlClient;
-using Npgsql;
 using Planto.DatabaseImplementation;
 
 namespace Planto;
 
 public class Planto
 {
-    private readonly DbConnection _connection;
+    private readonly string _connectionString;
     private readonly IDatabaseSchemaHelper _dbSchemaHelper;
 
-    public Planto(DbConnection connection)
+    public Planto(string connectionString, DbmsType dbmsType)
     {
-        _connection = connection;
-        _dbSchemaHelper = connection switch
+        _connectionString = connectionString;
+        _dbSchemaHelper = dbmsType switch
         {
-            NpgsqlConnection => new NpgSql(),
-            SqlConnection => new MsSql(),
+            DbmsType.NpgSql => new NpgSql(),
+            DbmsType.MsSql => new MsSql(),
             _ => throw new ArgumentException(
                 "Only NpgsqlConnection and SqlConnection are supported right now.\nConnection Type: "
-                + connection.GetType())
+                + dbmsType)
         };
     }
 
     public string CreateInsertStatement(List<ColumnInfo> columns, string tableName)
     {
-        var builder = new StringBuilder();
-        builder.Append($"Insert into {tableName} ");
-
-        builder.Append('(');
-        builder.AppendJoin(",", columns.Select(c => c.Name));
-        builder.Append(')');
-        builder.Append("Values");
-        builder.Append('(');
-        builder.AppendJoin(",",
-            columns.Select(c => c.IsPrimaryKey ? "default" : _dbSchemaHelper.CreateDefaultValue(c.DataType)));
-        builder.Append(')');
-        return builder.ToString();
+        return _dbSchemaHelper.CreateInsertStatement(columns, tableName);
     }
 
     public List<ColumnInfo> GetColumnInfo(string tableName)
     {
-        _connection.Open();
+        using var connection = _dbSchemaHelper.GetOpenConnection(_connectionString);
 
-        using var command = _connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText = _dbSchemaHelper.GetColumnInfoSql(tableName);
         var dataReader = command.ExecuteReader();
 

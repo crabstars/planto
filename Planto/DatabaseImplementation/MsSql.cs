@@ -1,4 +1,6 @@
+using System.Data.Common;
 using System.Text;
+using Microsoft.Data.SqlClient;
 
 namespace Planto.DatabaseImplementation;
 
@@ -115,9 +117,9 @@ public class MsSql : IDatabaseSchemaHelper
     };
 
 
-    // TODO if IsPrimaryKey and identity => skip
     public string CreateInsertStatement(List<ColumnInfo> columns, string tableName)
     {
+        columns = columns.Where(c => !c.IsIdentity.HasValue || !c.IsIdentity.Value).ToList();
         var builder = new StringBuilder();
         builder.Append($"Insert into {tableName} ");
 
@@ -126,9 +128,16 @@ public class MsSql : IDatabaseSchemaHelper
         builder.Append(')');
         builder.Append("Values");
         builder.Append('(');
-        builder.AppendJoin(",", columns.Select(c => c.IsPrimaryKey ? "default" : CreateDefaultValue(c.DataType)));
+        builder.AppendJoin(",", columns.Select(c => CreateDefaultValue(c.DataType)));
         builder.Append(')');
         return builder.ToString();
+    }
+
+    public DbConnection GetOpenConnection(string connectionString)
+    {
+        var connection = new SqlConnection(connectionString);
+        connection.Open();
+        return connection;
     }
 
     public class HierarchyId
