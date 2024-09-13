@@ -2,9 +2,9 @@ using FluentAssertions;
 using Testcontainers.PostgreSql;
 using Xunit;
 
-namespace Planto.Test;
+namespace Planto.Test.NpgSqlTests;
 
-public class PostgresSimpleTableTest : IAsyncLifetime
+public class NpgSqlSimpleTableTest : IAsyncLifetime
 {
     private const string TableName = "customers";
 

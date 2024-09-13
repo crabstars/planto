@@ -1,6 +1,9 @@
 namespace Planto.DatabaseImplementation.DataTypes;
 
-public class Geography
+public class Geography : IMsSqlDataType
 {
-    public static string GetDefaultValue => "geography::Point(0,0, 4326)";
+    public string GetDefaultValue()
+    {
+        return "geography::Point(0,0, 4326)";
+    }
 }

@@ -1,6 +1,6 @@
 using System.Data.Common;
 
-namespace Planto;
+namespace Planto.DatabaseImplementation;
 
 public interface IDatabaseSchemaHelper
 {

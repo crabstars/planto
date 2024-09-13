@@ -1,6 +1,9 @@
 namespace Planto.DatabaseImplementation.DataTypes;
 
-public class HierarchyId
+public class HierarchyId : IMsSqlDataType
 {
-    public static string GetDefaultValue => "0x0";
+    public string GetDefaultValue()
+    {
+        return "0x0";
+    }
 }

@@ -1,6 +1,9 @@
 namespace Planto.DatabaseImplementation.DataTypes;
 
-public class Geometry
+public class Geometry : IMsSqlDataType
 {
-    public static string GetDefaultValue => "geometry::STGeomFromText('POINT(0 0)', 0)";
+    public string GetDefaultValue()
+    {
+        return "geometry::STGeomFromText('POINT(0 0)', 0)";
+    }
 }

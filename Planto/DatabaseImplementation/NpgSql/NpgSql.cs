@@ -2,7 +2,7 @@ using System.Data.Common;
 using System.Text;
 using Npgsql;
 
-namespace Planto.DatabaseImplementation;
+namespace Planto.DatabaseImplementation.NpgSql;
 
 public class NpgSql : IDatabaseSchemaHelper
 {

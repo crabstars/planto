@@ -110,9 +110,9 @@ public class MsSql : IDatabaseSchemaHelper
         _ when type == typeof(TimeSpan) => $"'{DateTime.Now:hh\\:mm\\:ss}'",
         _ when type == typeof(Guid) => $"'{Guid.Empty}'",
         _ when type == typeof(byte[]) => "0x",
-        _ when type == typeof(HierarchyId) => HierarchyId.GetDefaultValue,
-        _ when type == typeof(Geography) => Geography.GetDefaultValue,
-        _ when type == typeof(Geometry) => Geometry.GetDefaultValue,
+        _ when type == typeof(HierarchyId) => new HierarchyId().GetDefaultValue(),
+        _ when type == typeof(Geography) => new Geography().GetDefaultValue(),
+        _ when type == typeof(Geometry) => new Geometry().GetDefaultValue(),
         _ when type.IsValueType => Activator.CreateInstance(type),
         _ => null
     };

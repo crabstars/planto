@@ -3,9 +3,9 @@ using Planto.DatabaseImplementation.DataTypes;
 using Testcontainers.MsSql;
 using Xunit;
 
-namespace Planto.Test;
+namespace Planto.Test.MsSqlTests;
 
-public class MssqlAllDataTypesTableTest : IAsyncLifetime
+public class AllDataTypesTableTest : IAsyncLifetime
 {
     private const string TableName = "all_datatypes_table";
 
@@ -442,7 +442,8 @@ public class MssqlAllDataTypesTableTest : IAsyncLifetime
     public async Task InitializeAsync()
     {
         await _msSqlContainer.StartAsync();
-        await _msSqlContainer.ExecScriptAsync(AllDataTypesTableSql).ConfigureAwait(true);
+        var res = await _msSqlContainer.ExecScriptAsync(AllDataTypesTableSql).ConfigureAwait(true);
+        res.Stderr.Should().BeEmpty();
     }
 
     public Task DisposeAsync()

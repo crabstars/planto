@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.Reflection;
 using Planto.DatabaseImplementation;
+using Planto.DatabaseImplementation.NpgSql;
 
 namespace Planto;
 
