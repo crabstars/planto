@@ -472,11 +472,10 @@ public class AllDataTypesTableTest : IAsyncLifetime
         var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
 
         // Act
-        var insertStatement = planto.CreateInsertStatement(_columnInfos, TableName);
+        var insertedEntity = await planto.CreateEntity(TableName);
 
         // Assert
-        var insertRes = await _msSqlContainer.ExecScriptAsync(insertStatement);
-        insertRes.Stderr.Should().BeEmpty();
+        insertedEntity.Should().Be(1);
     }
 }
 // TODO

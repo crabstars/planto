@@ -5,5 +5,8 @@ Seed single entities in a database and automatically created related entities
 
 ## Attention
 MsSql (Sql Server)
-If a table with an PK exists which is not handled by IDENTITY, the table should be empty because we use the default 
-value and we can only insert one entity right now. Will be improved in future version.
+- Right now only supports tables where id is managed by IDENTITY
+- A table with a foreign key that references more than one table does not work.
+
+## TODOs
+- Logs

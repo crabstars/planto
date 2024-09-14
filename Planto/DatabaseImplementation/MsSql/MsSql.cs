@@ -7,6 +7,14 @@ namespace Planto.DatabaseImplementation;
 
 public class MsSql : IDatabaseSchemaHelper
 {
+    private const string LastIdSql = "SELECT SCOPE_IDENTITY() AS GeneratedID;";
+    private readonly string _connectionString;
+
+    public MsSql(string connectionString)
+    {
+        _connectionString = connectionString;
+    }
+
     public string GetColumnInfoSql(string tableName)
     {
         return $"""
@@ -117,27 +125,79 @@ public class MsSql : IDatabaseSchemaHelper
         _ => null
     };
 
-
-    public string CreateInsertStatement(List<ColumnInfo> columns, string tableName)
+    public async Task<object> Insert(ExecutionNode executionNode)
     {
-        columns = columns.Where(c => !c.IsIdentity.HasValue || !c.IsIdentity.Value).ToList();
+        var columns = executionNode.ColumnInfos.Where(c => !c.IsIdentity.HasValue || !c.IsIdentity.Value).ToList();
         var builder = new StringBuilder();
-        builder.Append($"Insert into {tableName} ");
+        builder.Append($"Insert into {executionNode.TableName} ");
 
-        builder.Append('(');
-        builder.AppendJoin(",", columns.Select(c => c.Name));
-        builder.Append(')');
-        builder.Append("Values");
-        builder.Append('(');
-        builder.AppendJoin(",", columns.Select(c => CreateDefaultValue(c.DataType)));
-        builder.Append(')');
-        return builder.ToString();
+        if (columns.All(c => c.IsPrimaryKey))
+        {
+            builder.Append("DEFAULT VALUES;");
+        }
+        else
+        {
+            builder.Append('(');
+            builder.AppendJoin(",", columns.Select(c => c.Name));
+            builder.Append(')');
+            builder.Append("Values");
+            builder.Append('(');
+            var values = new List<object?>();
+            foreach (var c in columns)
+            {
+                if (c.IsForeignKey)
+                {
+                    var foreignKey =
+                        await Insert(executionNode.Children.Single(child => child.TableName == c.ForeignTableName));
+                    values.Add(foreignKey);
+                }
+                else
+                {
+                    values.Add(CreateDefaultValue(c.DataType));
+                }
+            }
+
+            builder.AppendJoin(",", values);
+            builder.Append(");");
+        }
+
+        builder.Append(LastIdSql);
+
+        var insertStatement = builder.ToString();
+        await using var connection = await GetOpenConnection();
+        await using var command = connection.CreateCommand();
+        command.CommandText = insertStatement;
+
+        try
+        {
+            await using var reader = await command.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                if (!reader.IsDBNull(reader.GetOrdinal("GeneratedID")))
+                {
+                    var value = reader["GeneratedID"];
+                    await reader.CloseAsync();
+                    return value ?? throw new InvalidOperationException("GeneratedID was not found");
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+        finally
+        {
+            await connection.CloseAsync();
+        }
+
+        throw new InvalidOperationException("Could not get GeneratedID. See logs");
     }
 
-    public DbConnection GetOpenConnection(string connectionString)
+    public async Task<DbConnection> GetOpenConnection()
     {
-        var connection = new SqlConnection(connectionString);
-        connection.Open();
+        var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
         return connection;
     }
 }

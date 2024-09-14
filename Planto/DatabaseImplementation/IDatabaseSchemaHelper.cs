@@ -10,7 +10,7 @@ public interface IDatabaseSchemaHelper
 
     public object? CreateDefaultValue(Type type);
 
-    public string CreateInsertStatement(List<ColumnInfo> columns, string tableName);
+    public Task<object> Insert(ExecutionNode executionNode);
 
-    public DbConnection GetOpenConnection(string connectionString);
+    public Task<DbConnection> GetOpenConnection();
 }

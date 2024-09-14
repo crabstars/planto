@@ -83,13 +83,15 @@ public class NpgSqlSimpleTableTest : IAsyncLifetime
     }
 
     [Fact]
-    public void CreateInsertForSimpleTable_FromColumnInfo()
+    public async Task CreateInsertForSimpleTable_FromColumnInfo()
     {
         // Arrange
+        await _postgreSqlContainer.ExecScriptAsync(SimpleTableSql).ConfigureAwait(true);
         var planto = new Planto(_postgreSqlContainer.GetConnectionString(), DbmsType.NpgSql);
 
         // Act
-        var insertStatement = planto.CreateInsertStatement(_columnInfos, TableName);
+        // TODO change test, when NpgSql Insert was updated
+        var insertStatement = (await planto.CreateEntity(TableName)).ToString();
 
         // Assert
         insertStatement.Should().Be("Insert into customers (customer_id,customer_name,email)Values(default,'','')");

@@ -21,19 +21,12 @@ public class MultiLevelForeignKeyTableTest : IAsyncLifetime
                                                 NameE NVARCHAR(100),
                                             );
 
-                                            -- Create Table F (no foreign keys)
-                                            CREATE TABLE TableF (
-                                                TableF_ID INT PRIMARY KEY IDENTITY(1,1),
-                                                NameF NVARCHAR(100),
-                                            );
-
-                                            -- Create Table D (has FK to E and F)
+                                            -- Create Table D (has FK to E)
                                             CREATE TABLE TableD (
                                                 TableD_ID INT PRIMARY KEY IDENTITY(1,1),
                                                 NameD NVARCHAR(100),
                                                 TableE_ID INT,
                                                 FOREIGN KEY (TableE_ID) REFERENCES TableE(TableE_ID),
-                                                FOREIGN KEY (TableE_ID) REFERENCES TableF(TableF_ID)
                                             );
 
                                             -- Create Table B (has FK to C and D)
@@ -87,10 +80,21 @@ public class MultiLevelForeignKeyTableTest : IAsyncLifetime
         var tableC = tableB.Children.Single(en => en.TableName == "TableC");
         var tableD = tableB.Children.Single(en => en.TableName == "TableD");
         tableC.Children.Count.Should().Be(0);
-        tableD.Children.Count.Should().Be(2);
+        tableD.Children.Count.Should().Be(1);
         var tableE = tableD.Children.Single(en => en.TableName == "TableE");
-        var tableF = tableD.Children.Single(en => en.TableName == "TableF");
         tableE.Children.Count.Should().Be(0);
-        tableF.Children.Count.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task CreateEntity_ForMultiLevelFkTables()
+    {
+        // Arrange
+        var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
+
+        // Act
+        var id = await planto.CreateEntity(TableName);
+
+        // Assert
+        id.Should().Be(1);
     }
 }

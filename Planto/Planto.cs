@@ -11,30 +11,29 @@ namespace Planto;
 
 public class Planto
 {
-    private readonly string _connectionString;
     private readonly IDatabaseSchemaHelper _dbSchemaHelper;
 
     public Planto(string connectionString, DbmsType dbmsType)
     {
-        _connectionString = connectionString;
         _dbSchemaHelper = dbmsType switch
         {
-            DbmsType.NpgSql => new NpgSql(),
-            DbmsType.MsSql => new MsSql(),
+            DbmsType.NpgSql => new NpgSql(connectionString),
+            DbmsType.MsSql => new MsSql(connectionString),
             _ => throw new ArgumentException(
                 "Only NpgsqlConnection and SqlConnection are supported right now.\nConnection Type: "
                 + dbmsType)
         };
     }
 
-    internal string CreateInsertStatement(List<ColumnInfo> columns, string tableName)
+
+    public async Task<object> CreateEntity(string tableName)
     {
-        return _dbSchemaHelper.CreateInsertStatement(columns, tableName);
+        return await _dbSchemaHelper.Insert(await CreateExecutionTree(tableName));
     }
 
     internal async Task<List<ColumnInfo>> GetColumnInfo(string tableName)
     {
-        await using var connection = _dbSchemaHelper.GetOpenConnection(_connectionString);
+        await using var connection = await _dbSchemaHelper.GetOpenConnection();
 
         await using var command = connection.CreateCommand();
         command.CommandText = _dbSchemaHelper.GetColumnInfoSql(tableName);
@@ -82,6 +81,15 @@ public class Planto
             result.Add(columnInfo);
         }
 
+        // Check if Columns are valid
+        // TODO add table name
+        if (result.DistinctBy(c => c.Name).Count() != result.Count)
+        {
+            throw new InvalidOperationException(
+                "You probably have at least one table with a foreign key which is connected to more than one table. " +
+                "This feature is not yet supported.");
+        }
+
         return result;
     }
 
@@ -107,10 +115,6 @@ public class Planto
             });
 
         return newExecutionNode;
-    }
-
-    public void ExecuteExecutionTree(ExecutionNode executionNode)
-    {
     }
 }
 

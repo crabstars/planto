@@ -6,6 +6,13 @@ namespace Planto.DatabaseImplementation.NpgSql;
 
 public class NpgSql : IDatabaseSchemaHelper
 {
+    private readonly string _connectionString;
+
+    public NpgSql(string connectionString)
+    {
+        _connectionString = connectionString;
+    }
+
     public string GetColumnInfoSql(string tableName)
     {
         return $"""
@@ -81,10 +88,11 @@ public class NpgSql : IDatabaseSchemaHelper
     };
 
 
-    public string CreateInsertStatement(List<ColumnInfo> columns, string tableName)
+    public async Task<object> Insert(ExecutionNode executionNode)
     {
         var builder = new StringBuilder();
-        builder.Append($"Insert into {tableName} ");
+        var columns = executionNode.ColumnInfos;
+        builder.Append($"Insert into {executionNode.TableName} ");
 
         builder.Append('(');
         builder.AppendJoin(",", columns.Select(c => c.Name));
@@ -98,10 +106,10 @@ public class NpgSql : IDatabaseSchemaHelper
     }
 
 
-    public DbConnection GetOpenConnection(string connectionString)
+    public async Task<DbConnection> GetOpenConnection()
     {
-        var connection = new NpgsqlConnection(connectionString);
-        connection.Open();
+        var connection = new NpgsqlConnection(_connectionString);
+        await connection.OpenAsync();
         return connection;
     }
 }
