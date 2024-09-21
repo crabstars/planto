@@ -1,9 +1,10 @@
-﻿using System.Collections.Concurrent;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Planto.DatabaseImplementation;
+using Planto.DatabaseImplementation.MsSql;
 using Planto.DatabaseImplementation.NpgSql;
+using Planto.OptionBuilder;
 
 [assembly: InternalsVisibleTo("Planto.Test")]
 
@@ -12,9 +13,11 @@ namespace Planto;
 public class Planto
 {
     private readonly IDatabaseSchemaHelper _dbSchemaHelper;
+    private readonly PlantoOptions _options;
 
-    public Planto(string connectionString, DbmsType dbmsType)
+    public Planto(string connectionString, DbmsType dbmsType, PlantoOptions? options = null)
     {
+        _options = options ?? new PlantoOptions();
         _dbSchemaHelper = dbmsType switch
         {
             DbmsType.NpgSql => new NpgSql(connectionString),
@@ -28,7 +31,7 @@ public class Planto
 
     public async Task<object> CreateEntity(string tableName)
     {
-        return await _dbSchemaHelper.Insert(await CreateExecutionTree(tableName));
+        return await _dbSchemaHelper.Insert(await CreateExecutionTree(tableName), _options.ValueGeneration);
     }
 
     internal async Task<List<ColumnInfo>> GetColumnInfo(string tableName)
@@ -66,6 +69,10 @@ public class Planto
                 if (property.PropertyType == typeof(bool) || property.PropertyType == typeof(bool?))
                 {
                     property.SetValue(columnInfo, Convert.ToBoolean(value));
+                }
+                else if (property.PropertyType == typeof(int))
+                {
+                    property.SetValue(columnInfo, (int)value);
                 }
                 else if (property.PropertyType == typeof(Type))
                 {
@@ -116,13 +123,4 @@ public class Planto
 
         return newExecutionNode;
     }
-}
-
-public class ExecutionNode
-{
-    public string TableName { get; set; }
-    public string InsertStatement { get; set; }
-    public ConcurrentBag<ExecutionNode> Children { get; set; } = [];
-    public object DbEntityId { get; set; }
-    public List<ColumnInfo> ColumnInfos { get; set; }
 }

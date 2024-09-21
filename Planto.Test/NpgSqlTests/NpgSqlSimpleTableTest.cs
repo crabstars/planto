@@ -39,6 +39,7 @@ public class NpgSqlSimpleTableTest : IAsyncLifetime
             ForeignColumnName = null,
             ForeignTableName = null,
             Name = CustomerNameColumn,
+            MaxCharLen = 100,
             IsNullable = true,
             IsPrimaryKey = false
         },
@@ -49,6 +50,7 @@ public class NpgSqlSimpleTableTest : IAsyncLifetime
             ForeignColumnName = null,
             ForeignTableName = null,
             Name = EmailColumn,
+            MaxCharLen = 100,
             IsNullable = false,
             IsPrimaryKey = false
         }

@@ -8,6 +8,8 @@ public class ColumnInfo
 
     // public string DataType { get; set; }
     [Column("data_type")] public Type DataType { get; set; }
+    
+    [Column("character_maximum_length")] public int MaxCharLen { get; set; }
 
     [Column("is_nullable")] public bool IsNullable { get; set; }
 

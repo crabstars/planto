@@ -1,6 +1,7 @@
 using System.Data.Common;
 using System.Text;
 using Npgsql;
+using Planto.OptionBuilder;
 
 namespace Planto.DatabaseImplementation.NpgSql;
 
@@ -19,6 +20,7 @@ public class NpgSql : IDatabaseSchemaHelper
                        SELECT
                            c.column_name,
                            c.data_type,
+                           c.character_maximum_length,
                        case 
                            when c.is_nullable = 'YES' then true
                            else false
@@ -88,7 +90,7 @@ public class NpgSql : IDatabaseSchemaHelper
     };
 
 
-    public async Task<object> Insert(ExecutionNode executionNode)
+    public async Task<object> Insert(ExecutionNode executionNode, ValueGeneration optionsValueGeneration)
     {
         var builder = new StringBuilder();
         var columns = executionNode.ColumnInfos;

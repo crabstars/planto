@@ -1,5 +1,6 @@
 using FluentAssertions;
-using Planto.DatabaseImplementation.DataTypes;
+using Planto.DatabaseImplementation.MsSql.DataTypes;
+using Planto.OptionBuilder;
 using Testcontainers.MsSql;
 using Xunit;
 
@@ -199,6 +200,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ForeignColumnName = null,
             ForeignTableName = null,
             Name = "char_column",
+            MaxCharLen = 10,
             IsNullable = false,
             IsIdentity = false,
             IsPrimaryKey = false
@@ -209,6 +211,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             DataType = typeof(string),
             ForeignColumnName = null,
             ForeignTableName = null,
+            MaxCharLen = 100,
             Name = "varchar_column",
             IsNullable = false,
             IsIdentity = false,
@@ -221,6 +224,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ForeignColumnName = null,
             ForeignTableName = null,
             Name = "text_column",
+            MaxCharLen = 2147483647,
             IsNullable = false,
             IsIdentity = false,
             IsPrimaryKey = false
@@ -232,6 +236,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ForeignColumnName = null,
             ForeignTableName = null,
             Name = "nchar_column",
+            MaxCharLen = 10,
             IsNullable = false,
             IsIdentity = false,
             IsPrimaryKey = false
@@ -243,6 +248,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ForeignColumnName = null,
             ForeignTableName = null,
             Name = "nvarchar_column",
+            MaxCharLen = 100,
             IsNullable = false,
             IsIdentity = false,
             IsPrimaryKey = false
@@ -254,6 +260,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ForeignColumnName = null,
             ForeignTableName = null,
             Name = "ntext_column",
+            MaxCharLen = 1073741823,
             IsNullable = false,
             IsIdentity = false,
             IsPrimaryKey = false
@@ -331,6 +338,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ForeignColumnName = null,
             ForeignTableName = null,
             Name = "binary_column",
+            MaxCharLen = 50,
             IsNullable = false,
             IsIdentity = false,
             IsPrimaryKey = false
@@ -342,6 +350,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ForeignColumnName = null,
             ForeignTableName = null,
             Name = "varbinary_column",
+            MaxCharLen = 50,
             IsNullable = false,
             IsIdentity = false,
             IsPrimaryKey = false
@@ -353,6 +362,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ForeignColumnName = null,
             ForeignTableName = null,
             Name = "image_column",
+            MaxCharLen = 2147483647,
             IsNullable = false,
             IsIdentity = false,
             IsPrimaryKey = false
@@ -386,6 +396,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ForeignColumnName = null,
             ForeignTableName = null,
             Name = "xml_column",
+            MaxCharLen = -1,
             IsNullable = false,
             IsIdentity = false,
             IsPrimaryKey = false
@@ -397,6 +408,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ForeignColumnName = null,
             ForeignTableName = null,
             Name = "json_column",
+            MaxCharLen = -1,
             IsNullable = false,
             IsIdentity = false,
             IsPrimaryKey = false
@@ -408,6 +420,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ForeignColumnName = null,
             ForeignTableName = null,
             Name = "hierarchyid_column",
+            MaxCharLen = 892,
             IsNullable = false,
             IsIdentity = false,
             IsPrimaryKey = false
@@ -419,6 +432,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ForeignColumnName = null,
             ForeignTableName = null,
             Name = "geography_column",
+            MaxCharLen = -1,
             IsNullable = false,
             IsIdentity = false,
             IsPrimaryKey = false
@@ -430,6 +444,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ForeignColumnName = null,
             ForeignTableName = null,
             Name = "geometry_column",
+            MaxCharLen = -1,
             IsNullable = false,
             IsIdentity = false,
             IsPrimaryKey = false
@@ -466,10 +481,26 @@ public class AllDataTypesTableTest : IAsyncLifetime
     }
 
     [Fact]
-    public async Task CreateInsertForSimpleTable_FromColumnInfo()
+    public async Task InsertForAllDataTypes_UseDefaultValues()
     {
         // Arrange
         var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
+
+        // Act
+        var insertedEntity = await planto.CreateEntity(TableName);
+
+        // Assert
+        insertedEntity.Should().Be(1);
+    }
+    
+    [Fact]
+    public async Task InsertForAllDataTypes_UseRandomValues()
+    {
+        // Arrange
+        var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql, new PlantoOptions
+        {
+            ValueGeneration = ValueGeneration.Random
+        });
 
         // Act
         var insertedEntity = await planto.CreateEntity(TableName);
