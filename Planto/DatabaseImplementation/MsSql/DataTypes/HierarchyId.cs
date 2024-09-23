@@ -7,7 +7,7 @@ public class HierarchyId : IMsSqlDataType
         return "0x";
     }
 
-    public string GetRandomValue()
+    public string GetRandomValue(int size)
     {
         throw new NotImplementedException();
     }

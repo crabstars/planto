@@ -1,5 +1,4 @@
 using System.Data.Common;
-using System.Globalization;
 using System.Text;
 using Microsoft.Data.SqlClient;
 using Planto.DatabaseImplementation.MsSql.DataTypes;
@@ -107,73 +106,7 @@ public class MsSql : IDatabaseSchemaHelper
         throw new ArgumentException($"SQL Type '{sqlType}' not recognized.");
     }
 
-    public object? CreateDefaultValue(Type type) => type switch
-    {
-        _ when type == typeof(string) => "''",
-        _ when type == typeof(int) => default(int),
-        _ when type == typeof(long) => default(long),
-        _ when type == typeof(float) => default(float),
-        _ when type == typeof(double) => default(double),
-        _ when type == typeof(decimal) => default(decimal),
-        _ when type == typeof(bool) => 0,
-        _ when type == typeof(DateTime) => $"'{DateTime.Now:yyyy-MM-dd}'",
-        _ when type == typeof(DateTimeOffset) => $"'{DateTime.Now:yyyy-MM-dd HH:mm:ss zzz}'",
-        _ when type == typeof(TimeSpan) => $"'{DateTime.Now:hh\\:mm\\:ss}'",
-        _ when type == typeof(Guid) => $"'{Guid.Empty}'",
-        _ when type == typeof(byte[]) => "0x",
-        _ when type == typeof(HierarchyId) => new HierarchyId().GetDefaultValue(),
-        _ when type == typeof(Geography) => new Geography().GetDefaultValue(),
-        _ when type == typeof(Geometry) => new Geometry().GetDefaultValue(),
-        _ when type.IsValueType => Activator.CreateInstance(type),
-        _ => null
-    };
-    
-    public object? CreateRandomValue(Type type) => type switch
-    {
-        _ when type == typeof(string) => $"'{Guid.NewGuid()}'",
-        _ when type == typeof(int) => new Random().NextDouble() * 100,
-        _ when type == typeof(long) => (long)(new Random().NextDouble() * 10000),
-        _ when type == typeof(float) => (float)(new Random().NextDouble() * 1000),
-        _ when type == typeof(double) => new Random().NextDouble() * 1000,
-        _ when type == typeof(decimal) => (decimal)(new Random().NextDouble() * 1000),
-        _ when type == typeof(bool) => new Random().Next(0, 2),
-        _ when type == typeof(DateTime) => $"'{DateTime.Now.AddDays(new Random().Next(-100, 100)):yyyy-MM-dd}'",
-        _ when type == typeof(DateTimeOffset) => $"'{DateTimeOffset.Now.AddDays(new Random().Next(-100, 100)):yyyy-MM-dd HH:mm:ss zzz}'",
-        _ when type == typeof(TimeSpan) => $"'{TimeSpan.FromMinutes(new Random().Next(0, 1440)):hh\\:mm\\:ss}'",
-        _ when type == typeof(Guid) => $"'{Guid.NewGuid()}'",
-        _ when type == typeof(byte[]) =>"0x",
-        _ when type == typeof(HierarchyId) => new HierarchyId().GetDefaultValue(), // TODO
-        _ when type == typeof(Geography) => new Geography().GetDefaultValue(), // TODO
-        _ when type == typeof(Geometry) => new Geometry().GetDefaultValue(), // TODO
-        _ when type.IsValueType => Activator.CreateInstance(type),
-        _ => null
-    };
-
-    private string GenerateRandomHexByteArray(int size)
-    {
-        var random = new Random();
-        var byteArray = new byte[size];
-        random.NextBytes(byteArray);
-        return "0x" + BitConverter.ToString(byteArray).Replace("-", "");
-    }
-
-    private static string? FormatValueForSql(object value)
-    {
-        // TODO make this methode handle more cases
-        return value switch
-        {
-            null => "NULL",
-            string s => s,
-            //DateTime dt => $"'{dt:yyyy-MM-dd HH:mm:ss}'",
-            //bool b => b ? "1" : "0",
-            decimal d => d.ToString(CultureInfo.InvariantCulture),
-            double db => db.ToString(CultureInfo.InvariantCulture),
-            float f => f.ToString(CultureInfo.InvariantCulture),
-            _ => value.ToString()
-        };
-    }
-
-    public async Task<object> Insert(ExecutionNode executionNode, ValueGeneration optionsValueGeneration)
+    public async Task<object> Insert(ExecutionNode executionNode, ValueGeneration valueGeneration)
     {
         var columns = executionNode.ColumnInfos.Where(c => !c.IsIdentity.HasValue || !c.IsIdentity.Value).ToList();
         var builder = new StringBuilder();
@@ -197,25 +130,16 @@ public class MsSql : IDatabaseSchemaHelper
                 {
                     var foreignKey =
                         await Insert(executionNode.Children.Single(child => child.TableName == c.ForeignTableName
-                            ), optionsValueGeneration);
+                        ), valueGeneration);
                     values.Add(foreignKey);
                 }
                 else
                 {
-                    switch (optionsValueGeneration)
-                    {
-                        case ValueGeneration.Default:
-                            values.Add(CreateDefaultValue(c.DataType));
-                            break;
-                        case ValueGeneration.Random:
-                            values.Add(CreateRandomValue(c.DataType));
-                            break;
-                        default:
-                            throw new ArgumentOutOfRangeException(nameof(optionsValueGeneration), optionsValueGeneration, null);
-                    }
+                    values.Add(SqlValueGeneration.CreateValueForMsSql(c.DataType, valueGeneration, c.MaxCharLen));
                 }
             }
-            builder.AppendJoin(",", values.Select(v => FormatValueForSql(v)));
+
+            builder.AppendJoin(",", values);
             builder.Append(");");
         }
 

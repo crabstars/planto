@@ -1,4 +1,3 @@
-
 namespace Planto.DatabaseImplementation.MsSql.DataTypes;
 
 public class Geometry : IMsSqlDataType
@@ -8,7 +7,7 @@ public class Geometry : IMsSqlDataType
         return "geometry::STGeomFromText('POINT(0 0)', 0)";
     }
 
-    public string GetRandomValue()
+    public string GetRandomValue(int size)
     {
         throw new NotImplementedException();
     }

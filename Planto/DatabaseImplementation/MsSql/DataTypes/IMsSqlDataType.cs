@@ -4,5 +4,5 @@ public interface IMsSqlDataType
 {
     public string GetDefaultValue();
 
-    public string GetRandomValue();
+    public string GetRandomValue(int size);
 }

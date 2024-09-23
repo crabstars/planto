@@ -28,6 +28,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
                                                  
                                                      -- String Data Types
                                                      char_column CHAR(10) NOT NULL,
+                                                     varchar_max_column VARCHAR(MAX) NOT NULL,
                                                      varchar_column VARCHAR(100) NOT NULL,
                                                      text_column TEXT NOT NULL,
                                                      nchar_column NCHAR(10) NOT NULL,
@@ -213,6 +214,18 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ForeignTableName = null,
             MaxCharLen = 100,
             Name = "varchar_column",
+            IsNullable = false,
+            IsIdentity = false,
+            IsPrimaryKey = false
+        },
+        new()
+        {
+            IsForeignKey = false,
+            DataType = typeof(string),
+            ForeignColumnName = null,
+            ForeignTableName = null,
+            MaxCharLen = -1,
+            Name = "varchar_max_column",
             IsNullable = false,
             IsIdentity = false,
             IsPrimaryKey = false
@@ -492,21 +505,37 @@ public class AllDataTypesTableTest : IAsyncLifetime
         // Assert
         insertedEntity.Should().Be(1);
     }
-    
+
     [Fact]
     public async Task InsertForAllDataTypes_UseRandomValues()
     {
         // Arrange
-        var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql, new PlantoOptions
-        {
-            ValueGeneration = ValueGeneration.Random
-        });
+        var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql,
+            options =>
+                options.SetValueGeneration(ValueGeneration.Random));
 
         // Act
         var insertedEntity = await planto.CreateEntity(TableName);
 
         // Assert
         insertedEntity.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task InsertForAllDataTypes2Entities_UseRandomValues()
+    {
+        // Arrange
+        var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql,
+            options =>
+                options.SetValueGeneration(ValueGeneration.Random));
+
+        // Act
+        var insertedEntity1 = await planto.CreateEntity(TableName);
+        var insertedEntity2 = await planto.CreateEntity(TableName);
+
+        // Assert
+        insertedEntity1.Should().Be(1);
+        insertedEntity2.Should().Be(2);
     }
 }
 // TODO

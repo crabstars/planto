@@ -71,26 +71,8 @@ public class NpgSql : IDatabaseSchemaHelper
         _ => typeof(object)
     };
 
-    public object? CreateDefaultValue(Type type) => type switch
-    {
-        _ when type == typeof(string) => "''",
-        _ when type == typeof(int) => default(int),
-        _ when type == typeof(long) => default(long),
-        _ when type == typeof(float) => default(float),
-        _ when type == typeof(double) => default(double),
-        _ when type == typeof(decimal) => default(decimal),
-        _ when type == typeof(bool) => default(bool),
-        _ when type == typeof(DateTime) => default(DateTime),
-        _ when type == typeof(DateTimeOffset) => default(DateTimeOffset),
-        _ when type == typeof(TimeSpan) => default(TimeSpan),
-        _ when type == typeof(Guid) => Guid.Empty,
-        _ when type == typeof(byte[]) => Array.Empty<byte>(),
-        _ when type.IsValueType => Activator.CreateInstance(type),
-        _ => null
-    };
 
-
-    public async Task<object> Insert(ExecutionNode executionNode, ValueGeneration optionsValueGeneration)
+    public async Task<object> Insert(ExecutionNode executionNode, ValueGeneration valueGeneration)
     {
         var builder = new StringBuilder();
         var columns = executionNode.ColumnInfos;
@@ -113,5 +95,28 @@ public class NpgSql : IDatabaseSchemaHelper
         var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync();
         return connection;
+    }
+
+    public object? CreateDefaultValue(Type type) => type switch
+    {
+        _ when type == typeof(string) => "''",
+        _ when type == typeof(int) => default(int),
+        _ when type == typeof(long) => default(long),
+        _ when type == typeof(float) => default(float),
+        _ when type == typeof(double) => default(double),
+        _ when type == typeof(decimal) => default(decimal),
+        _ when type == typeof(bool) => default(bool),
+        _ when type == typeof(DateTime) => default(DateTime),
+        _ when type == typeof(DateTimeOffset) => default(DateTimeOffset),
+        _ when type == typeof(TimeSpan) => default(TimeSpan),
+        _ when type == typeof(Guid) => Guid.Empty,
+        _ when type == typeof(byte[]) => Array.Empty<byte>(),
+        _ when type.IsValueType => Activator.CreateInstance(type),
+        _ => null
+    };
+
+    public object? CreateRandomValue(Type type, int size)
+    {
+        throw new NotImplementedException();
     }
 }

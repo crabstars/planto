@@ -9,9 +9,7 @@ public interface IDatabaseSchemaHelper
 
     public string GetColumnInfoSql(string tableName);
 
-    public object? CreateDefaultValue(Type type);
-
-    public Task<object> Insert(ExecutionNode executionNode, ValueGeneration optionsValueGeneration);
+    public Task<object> Insert(ExecutionNode executionNode, ValueGeneration valueGeneration);
 
     public Task<DbConnection> GetOpenConnection();
 }

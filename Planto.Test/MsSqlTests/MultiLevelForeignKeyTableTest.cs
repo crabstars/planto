@@ -86,15 +86,17 @@ public class MultiLevelForeignKeyTableTest : IAsyncLifetime
     }
 
     [Fact]
-    public async Task CreateEntity_ForMultiLevelFkTables()
+    public async Task CreateMultipleEntities_ForMultiLevelFkTables()
     {
         // Arrange
         var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
 
         // Act
-        var id = await planto.CreateEntity(TableName);
+        var id1 = await planto.CreateEntity(TableName);
+        var id2 = await planto.CreateEntity(TableName);
 
         // Assert
-        id.Should().Be(1);
+        id1.Should().Be(1);
+        id2.Should().Be(2);
     }
 }

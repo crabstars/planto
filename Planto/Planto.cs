@@ -15,9 +15,11 @@ public class Planto
     private readonly IDatabaseSchemaHelper _dbSchemaHelper;
     private readonly PlantoOptions _options;
 
-    public Planto(string connectionString, DbmsType dbmsType, PlantoOptions? options = null)
+    public Planto(string connectionString, DbmsType dbmsType, Action<PlantoOptionBuilder>? configureOptions = null)
     {
-        _options = options ?? new PlantoOptions();
+        var optionsBuilder = new PlantoOptionBuilder();
+        configureOptions?.Invoke(optionsBuilder);
+        _options = optionsBuilder.Build();
         _dbSchemaHelper = dbmsType switch
         {
             DbmsType.NpgSql => new NpgSql(connectionString),
@@ -72,7 +74,7 @@ public class Planto
                 }
                 else if (property.PropertyType == typeof(int))
                 {
-                    property.SetValue(columnInfo, (int)value);
+                    property.SetValue(columnInfo, Convert.ToInt32(value));
                 }
                 else if (property.PropertyType == typeof(Type))
                 {
