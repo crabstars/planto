@@ -93,7 +93,7 @@ public class NpgSqlSimpleTableTest : IAsyncLifetime
 
         // Act
         // TODO change test, when NpgSql Insert was updated
-        var insertStatement = (await planto.CreateEntity(TableName)).ToString();
+        var insertStatement = await planto.CreateEntity<string>(TableName);
 
         // Assert
         insertStatement.Should().Be("Insert into customers (customer_id,customer_name,email)Values(default,'','')");

@@ -92,8 +92,8 @@ public class MultiLevelForeignKeyTableTest : IAsyncLifetime
         var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
 
         // Act
-        var id1 = await planto.CreateEntity(TableName);
-        var id2 = await planto.CreateEntity(TableName);
+        var id1 = await planto.CreateEntity<int>(TableName);
+        var id2 = await planto.CreateEntity<int>(TableName);
 
         // Assert
         id1.Should().Be(1);

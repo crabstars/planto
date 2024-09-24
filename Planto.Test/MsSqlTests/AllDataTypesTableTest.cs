@@ -500,7 +500,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
         var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
 
         // Act
-        var insertedEntity = await planto.CreateEntity(TableName);
+        var insertedEntity = await planto.CreateEntity<int>(TableName);
 
         // Assert
         insertedEntity.Should().Be(1);
@@ -515,7 +515,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
                 options.SetValueGeneration(ValueGeneration.Random));
 
         // Act
-        var insertedEntity = await planto.CreateEntity(TableName);
+        var insertedEntity = await planto.CreateEntity<int>(TableName);
 
         // Assert
         insertedEntity.Should().Be(1);
@@ -530,78 +530,11 @@ public class AllDataTypesTableTest : IAsyncLifetime
                 options.SetValueGeneration(ValueGeneration.Random));
 
         // Act
-        var insertedEntity1 = await planto.CreateEntity(TableName);
-        var insertedEntity2 = await planto.CreateEntity(TableName);
+        var insertedEntity1 = await planto.CreateEntity<int>(TableName);
+        var insertedEntity2 = await planto.CreateEntity<int>(TableName);
 
         // Assert
         insertedEntity1.Should().Be(1);
         insertedEntity2.Should().Be(2);
     }
 }
-// TODO
-//var retres = await _msSqlContainer.ExecScriptAsync($"Select Count(*) as c from {TableName}");
-// """ Handle following 
-// CREATE TABLE Example (
-//     ID VARCHAR(100) PRIMARY KEY,
-//     Name VARCHAR(50)
-// ); 
-//
-// CREATE TABLE Example (
-//     ID INT PRIMARY KEY,
-//     Name VARCHAR(50)
-// );
-//
-// CREATE TABLE Example (
-//     ID INT PRIMARY KEY IDENTITY(1,1),
-//     Name VARCHAR(50)
-// );
-//
-// CREATE TABLE Example (
-//     ID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-//     Name VARCHAR(50)
-// );
-//
-// CREATE TABLE Example (
-//     ID1 INT,
-//     ID2 INT,
-//     Name VARCHAR(50),
-//     PRIMARY KEY (ID1, ID2)
-// );
-//
-// CREATE SEQUENCE ExampleSequence AS INT START WITH 1 INCREMENT BY 1;
-//
-// CREATE TABLE Example (
-//     ID INT PRIMARY KEY DEFAULT (NEXT VALUE FOR ExampleSequence),
-//     Name VARCHAR(50)
-// );
-//
-//
-// SELECT 
-//     t.name AS TableName,
-//     c.name AS ColumnName,
-//     tp.name AS DataType,
-//     CASE 
-//         WHEN ic.object_id IS NOT NULL THEN 'Identity'
-//         WHEN tp.name = 'uniqueidentifier' THEN 'GUID'
-//         WHEN s.object_id IS NOT NULL THEN 'Sequence-based'
-//         ELSE 'Standard'
-//     END AS PKType,
-//     CASE 
-//         WHEN COUNT(*) OVER (PARTITION BY ic.object_id) > 1 THEN 'Composite'
-//         ELSE 'Single Column'
-//     END AS PKComposition
-// FROM 
-//     sys.tables t
-// INNER JOIN sys.indexes i ON t.object_id = i.object_id
-// INNER JOIN sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id
-// INNER JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id
-// INNER JOIN sys.types tp ON c.user_type_id = tp.user_type_id
-// LEFT JOIN sys.identity_columns idc ON c.object_id = idc.object_id AND c.column_id = idc.column_id
-// LEFT JOIN sys.default_constraints dc ON c.default_object_id = dc.object_id
-// LEFT JOIN sys.sequences s ON dc.definition = ('(NEXT VALUE FOR [' + OBJECT_SCHEMA_NAME(s.object_id) + '].[' + OBJECT_NAME(s.object_id) + '])')
-// WHERE 
-//     i.is_primary_key = 1
-// ORDER BY 
-//     t.name, ic.key_ordinal;
-//
-// """

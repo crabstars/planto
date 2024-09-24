@@ -31,9 +31,9 @@ public class Planto
     }
 
 
-    public async Task<object> CreateEntity(string tableName)
+    public async Task<TCast> CreateEntity<TCast>(string tableName)
     {
-        return await _dbSchemaHelper.Insert(await CreateExecutionTree(tableName), _options.ValueGeneration);
+        return (TCast)await _dbSchemaHelper.Insert(await CreateExecutionTree(tableName), _options.ValueGeneration);
     }
 
     internal async Task<List<ColumnInfo>> GetColumnInfo(string tableName)

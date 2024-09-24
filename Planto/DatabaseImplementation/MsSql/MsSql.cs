@@ -8,7 +8,8 @@ namespace Planto.DatabaseImplementation.MsSql;
 
 public class MsSql : IDatabaseSchemaHelper
 {
-    private const string LastIdSql = "SELECT SCOPE_IDENTITY() AS GeneratedID;";
+    private const string LastIdIntSql = "SELECT CAST(SCOPE_IDENTITY() AS INT) AS GeneratedID;";
+    private const string LastIdDecimalSql = "SELECT SCOPE_IDENTITY() AS GeneratedID;";
     private readonly string _connectionString;
 
     public MsSql(string connectionString)
@@ -112,7 +113,8 @@ public class MsSql : IDatabaseSchemaHelper
         var builder = new StringBuilder();
         builder.Append($"Insert into {executionNode.TableName} ");
 
-        if (columns.All(c => c.IsPrimaryKey))
+        object? pk = null;
+        if (columns.All(c => c is { IsPrimaryKey: true, IsIdentity: not null } && c.IsIdentity.Value))
         {
             builder.Append("DEFAULT VALUES;");
         }
@@ -135,7 +137,10 @@ public class MsSql : IDatabaseSchemaHelper
                 }
                 else
                 {
-                    values.Add(SqlValueGeneration.CreateValueForMsSql(c.DataType, valueGeneration, c.MaxCharLen));
+                    var value = SqlValueGeneration.CreateValueForMsSql(c.DataType, valueGeneration, c.MaxCharLen);
+                    values.Add(value);
+                    if (c.IsPrimaryKey)
+                        pk = value;
                 }
             }
 
@@ -143,7 +148,12 @@ public class MsSql : IDatabaseSchemaHelper
             builder.Append(");");
         }
 
-        builder.Append(LastIdSql);
+        if (pk is null)
+        {
+            builder.Append(executionNode.ColumnInfos.Any(c => c.IsPrimaryKey && c.DataType != typeof(int))
+                ? LastIdDecimalSql
+                : LastIdIntSql);
+        }
 
         var insertStatement = builder.ToString();
         executionNode.InsertStatement = insertStatement;
@@ -154,14 +164,20 @@ public class MsSql : IDatabaseSchemaHelper
         try
         {
             await using var reader = await command.ExecuteReaderAsync();
+            if (pk != null)
+            {
+                await reader.CloseAsync();
+                return pk;
+            }
+
             if (await reader.ReadAsync())
             {
                 if (!reader.IsDBNull(reader.GetOrdinal("GeneratedID")))
                 {
-                    var value = reader["GeneratedID"];
+                    pk = reader["GeneratedID"];
                     await reader.CloseAsync();
-                    executionNode.DbEntityId = value;
-                    return value ?? throw new InvalidOperationException("GeneratedID was not found");
+                    executionNode.DbEntityId = pk;
+                    return pk ?? throw new InvalidOperationException("GeneratedID was not found");
                 }
             }
         }
