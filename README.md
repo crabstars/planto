@@ -41,6 +41,7 @@ var id = await plantoDefaultValues.CreateEntity<int>(TableName);
 - WIP
 
 ## TODOs
+- improve Planto.cs line 95
 - transaction
 - allow user to set values for main entity
 - cache columnInfo for tables
