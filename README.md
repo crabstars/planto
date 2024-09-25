@@ -41,6 +41,7 @@ var id = await plantoDefaultValues.CreateEntity<int>(TableName);
 - WIP
 
 ## TODOs
+- transaction
 - allow user to set values for main entity
 - cache columnInfo for tables
 - Support special PKs for MsSql
