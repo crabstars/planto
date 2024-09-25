@@ -24,7 +24,7 @@ public class MsSql : IDatabaseSchemaHelper
                            c.column_name,
                            c.data_type,
                            c.character_maximum_length,
-                       case 
+                       case
                            when c.is_nullable = 'YES' then 1
                            else 0
                        end as is_nullable,
@@ -37,26 +37,24 @@ public class MsSql : IDatabaseSchemaHelper
                            ELSE 0
                        END AS is_primary_key,
                        CASE
-                            WHEN ic.object_id IS NOT NULL THEN 1
+                            WHEN COLUMNPROPERTY(object_id(c.TABLE_SCHEMA + '.' + c.TABLE_NAME), c.COLUMN_NAME, 'IsIdentity') = 1 THEN 1
                             ELSE 0
                        end AS is_identity,
                        ccu.table_name AS foreign_table_name,
                        ccu.column_name AS foreign_column_name
-                       FROM 
-                           information_schema.columns c
-                       LEFT JOIN information_schema.key_column_usage kcu 
-                           ON c.table_name = kcu.table_name 
+                       FROM
+                           INFORMATION_SCHEMA.COLUMNS c
+                       LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu
+                           ON c.table_name = kcu.table_name
                            AND c.column_name = kcu.column_name
-                       LEFT JOIN information_schema.table_constraints tc 
+                       LEFT JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
                            ON kcu.constraint_name = tc.constraint_name
                            AND tc.table_name = c.table_name
-                       LEFT JOIN information_schema.referential_constraints rc
+                       LEFT JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS rc
                            ON tc.constraint_name = rc.constraint_name
-                       LEFT JOIN information_schema.constraint_column_usage ccu
+                       LEFT JOIN INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE ccu
                            ON rc.unique_constraint_name = ccu.constraint_name
-                       LEFT JOIN sys.identity_columns ic
-                            ON OBJECT_ID(c.table_name) = ic.object_id AND c.column_name = ic.name
-                       WHERE 
+                       WHERE
                            c.table_name = '{tableName}';
                 """;
     }
