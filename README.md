@@ -13,7 +13,7 @@ Create a Planto object and use the CreateEntity function
 ```c#
 string TableName = "ExampleTable"
 
-// recomended!
+// recommended!
 var plantoRandomValues = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql, 
             options => options.SetValueGeneration(ValueGeneration.Random));
 
