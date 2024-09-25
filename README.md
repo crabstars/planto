@@ -11,7 +11,7 @@ Seed entities in a database and automatically created related entities.
 Create a Planto object and use the CreateEntity function
 
 ```c#
-string TableName = "ExampleTable"
+string TableName = "ExampleTable";
 
 // recommended!
 var plantoRandomValues = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql, 
