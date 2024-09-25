@@ -16,6 +16,9 @@ public class PrimaryKeyTests : IAsyncLifetime
                                                """;
 
     private readonly MsSqlContainer _msSqlContainer = new MsSqlBuilder()
+        .WithImage(
+            "mcr.microsoft.com/mssql/server:2022-latest"
+        ).WithPortBinding(1433, true)
         .Build();
 
     public async Task InitializeAsync()
