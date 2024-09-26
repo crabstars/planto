@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Planto.Column;
 using Planto.OptionBuilder;
 using Testcontainers.MsSql;
 using Xunit;
@@ -40,24 +41,34 @@ public class PrimaryKeyTests : IAsyncLifetime
         var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
 
         // Act
-        var columnInfo = await planto.GetColumnInfo(TableName);
+        var tableInfo = await planto.GetTableInfo(TableName);
 
         // Assert
-        columnInfo.Should().BeEquivalentTo(new List<ColumnInfo>()
+        tableInfo.ColumnInfos.Should().BeEquivalentTo(new List<ColumnInfo>()
+        {
+            new()
+            {
+                DataType = typeof(string),
+                ColumnName = "id",
+                IsNullable = false,
+                IsIdentity = false,
+                MaxCharLen = 100
+            }
+        });
+
+        tableInfo.ColumnConstraints.Should().BeEquivalentTo(new List<ColumnConstraint>
         {
             new()
             {
                 IsForeignKey = false,
-                DataType = typeof(string),
                 ForeignColumnName = null,
                 ForeignTableName = null,
-                Name = "id",
-                IsNullable = false,
-                IsIdentity = false,
+                ColumnName = "id",
                 IsPrimaryKey = true,
-                MaxCharLen = 100
+                IsUnique = true,
+                ConstraintType = ConstraintType.PrimaryKey
             }
-        });
+        }, options => options.Excluding(x => x.ConstraintName));
     }
 
     [Fact]

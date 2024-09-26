@@ -20,42 +20,55 @@ public class MsSql : IDatabaseSchemaHelper
     public string GetColumnInfoSql(string tableName)
     {
         return $"""
-                       SELECT
-                           c.column_name,
-                           c.data_type,
-                           c.character_maximum_length,
-                       case
-                           when c.is_nullable = 'YES' then 1
-                           else 0
-                       end as is_nullable,
-                       CASE
-                           WHEN tc.constraint_type = 'FOREIGN KEY' THEN 1
-                           ELSE 0
-                       END AS is_foreign_key,
-                       CASE
-                           WHEN tc.constraint_type = 'PRIMARY KEY' THEN 1
-                           ELSE 0
-                       END AS is_primary_key,
-                       CASE
-                            WHEN COLUMNPROPERTY(object_id(c.TABLE_SCHEMA + '.' + c.TABLE_NAME), c.COLUMN_NAME, 'IsIdentity') = 1 THEN 1
-                            ELSE 0
-                       end AS is_identity,
-                       ccu.table_name AS foreign_table_name,
-                       ccu.column_name AS foreign_column_name
-                       FROM
-                           INFORMATION_SCHEMA.COLUMNS c
-                       LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu
-                           ON c.table_name = kcu.table_name
-                           AND c.column_name = kcu.column_name
-                       LEFT JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
-                           ON kcu.constraint_name = tc.constraint_name
-                           AND tc.table_name = c.table_name
-                       LEFT JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS rc
-                           ON tc.constraint_name = rc.constraint_name
-                       LEFT JOIN INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE ccu
-                           ON rc.unique_constraint_name = ccu.constraint_name
-                       WHERE
-                           c.table_name = '{tableName}';
+                SELECT
+                    c.column_name,
+                    c.data_type,
+                    c.character_maximum_length,
+                case
+                    when c.is_nullable = 'YES' then 1
+                    else 0
+                end as is_nullable,
+                CASE
+                     WHEN COLUMNPROPERTY(object_id(c.TABLE_SCHEMA + '.' + c.TABLE_NAME), c.COLUMN_NAME, 'IsIdentity') = 1 THEN 1
+                     ELSE 0
+                end AS is_identity
+                FROM
+                    INFORMATION_SCHEMA.COLUMNS c
+                WHERE
+                    c.table_name = '{tableName}';
+                """;
+    }
+
+    public string GetColumnConstraintsSql(string tableName)
+    {
+        return $"""
+                SELECT
+                    tc.CONSTRAINT_NAME as constraint_name,
+                    tc.CONSTRAINT_TYPE as constraint_type,
+                    c.column_name,
+                    CASE WHEN tc.CONSTRAINT_TYPE IN ('PRIMARY KEY', 'UNIQUE') THEN 1 ELSE 0 END AS is_unique,
+                    CASE WHEN tc.CONSTRAINT_TYPE = 'FOREIGN KEY' THEN 1 ELSE 0 END AS is_foreign_key,
+                    CASE WHEN tc.CONSTRAINT_TYPE = 'PRIMARY KEY' THEN 1 ELSE 0 END AS is_primary_key,
+                    CASE 
+                        WHEN tc.CONSTRAINT_TYPE = 'FOREIGN KEY' THEN OBJECT_NAME(fk.referenced_object_id)
+                        ELSE NULL
+                    END AS foreign_table_name,
+                    CASE 
+                        WHEN tc.CONSTRAINT_TYPE = 'FOREIGN KEY' THEN COL_NAME(fk.referenced_object_id, fkc.referenced_column_id)
+                        ELSE NULL
+                    END AS foreign_column_name
+                FROM 
+                    INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
+                LEFT JOIN 
+                    INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu ON kcu.table_name = tc.table_name AND kcu.constraint_name = tc.constraint_name
+                LEFT JOIN 
+                    INFORMATION_SCHEMA.COLUMNS c ON c.table_name = kcu.table_name AND c.column_name = kcu.column_name                    
+                LEFT JOIN 
+                    sys.foreign_keys fk ON tc.CONSTRAINT_NAME = fk.name
+                LEFT JOIN 
+                    sys.foreign_key_columns fkc ON fk.object_id = fkc.constraint_object_id
+                WHERE 
+                    c.table_name = '{tableName}';
                 """;
     }
 
@@ -107,29 +120,33 @@ public class MsSql : IDatabaseSchemaHelper
 
     public async Task<object> Insert(ExecutionNode executionNode, ValueGeneration valueGeneration)
     {
-        var columns = executionNode.ColumnInfos.Where(c => !c.IsIdentity.HasValue || !c.IsIdentity.Value).ToList();
+        var columns = executionNode.TableInfo.ColumnInfos.Where(c => !c.IsIdentity.HasValue || !c.IsIdentity.Value)
+            .ToList();
         var builder = new StringBuilder();
         builder.Append($"Insert into {executionNode.TableName} ");
 
         object? pk = null;
-        if (columns.All(c => c is { IsPrimaryKey: true, IsIdentity: not null } && c.IsIdentity.Value))
+        if (columns.All(c =>
+                executionNode.TableInfo.ColumnIsPrimaryKey(c.ColumnName) && c.IsIdentity != null && c.IsIdentity.Value))
         {
             builder.Append("DEFAULT VALUES;");
         }
         else
         {
             builder.Append('(');
-            builder.AppendJoin(",", columns.Select(c => c.Name));
+            builder.AppendJoin(",", columns.Select(c => c.ColumnName));
             builder.Append(')');
             builder.Append("Values");
             builder.Append('(');
             var values = new List<object?>();
             foreach (var c in columns)
             {
-                if (c.IsForeignKey)
+                if (executionNode.TableInfo.ColumnIsForeignKey(c.ColumnName))
                 {
                     var foreignKey =
-                        await Insert(executionNode.Children.Single(child => child.TableName == c.ForeignTableName
+                        await Insert(executionNode.Children.Single(child => executionNode.TableInfo
+                            .ColumnConstraints.Any(cc =>
+                                cc.ForeignTableName == child.TableName && c.ColumnName == cc.ForeignColumnName)
                         ), valueGeneration);
                     values.Add(foreignKey);
                 }
@@ -137,7 +154,7 @@ public class MsSql : IDatabaseSchemaHelper
                 {
                     var value = SqlValueGeneration.CreateValueForMsSql(c.DataType, valueGeneration, c.MaxCharLen);
                     values.Add(value);
-                    if (c.IsPrimaryKey)
+                    if (executionNode.TableInfo.ColumnIsPrimaryKey(c.ColumnName))
                         pk = value;
                 }
             }
@@ -148,7 +165,9 @@ public class MsSql : IDatabaseSchemaHelper
 
         if (pk is null)
         {
-            builder.Append(executionNode.ColumnInfos.Any(c => c.IsPrimaryKey && c.DataType != typeof(int))
+            builder.Append(executionNode.TableInfo.ColumnInfos.Any(c => c.DataType != typeof(int)
+                                                                        && executionNode.TableInfo.ColumnIsPrimaryKey(
+                                                                            c.ColumnName))
                 ? LastIdDecimalSql
                 : LastIdIntSql);
         }

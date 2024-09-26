@@ -9,6 +9,8 @@ public interface IDatabaseSchemaHelper
 
     public string GetColumnInfoSql(string tableName);
 
+    public string GetColumnConstraintsSql(string tableName);
+
     public Task<object> Insert(ExecutionNode executionNode, ValueGeneration valueGeneration);
 
     public Task<DbConnection> GetOpenConnection();

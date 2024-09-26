@@ -1,5 +1,4 @@
 using System.Data.Common;
-using System.Text;
 using Npgsql;
 using Planto.OptionBuilder;
 
@@ -52,6 +51,11 @@ public class NpgSql : IDatabaseSchemaHelper
                 """;
     }
 
+    public string GetColumnConstraintsSql(string tableName)
+    {
+        throw new NotImplementedException();
+    }
+
     public Type MapToSystemType(string pgType) => pgType.ToLower() switch
     {
         "integer" => typeof(int),
@@ -74,19 +78,20 @@ public class NpgSql : IDatabaseSchemaHelper
 
     public async Task<object> Insert(ExecutionNode executionNode, ValueGeneration valueGeneration)
     {
-        var builder = new StringBuilder();
-        var columns = executionNode.ColumnInfos;
-        builder.Append($"Insert into {executionNode.TableName} ");
-
-        builder.Append('(');
-        builder.AppendJoin(",", columns.Select(c => c.Name));
-        builder.Append(')');
-        builder.Append("Values");
-        builder.Append('(');
-        builder.AppendJoin(",",
-            columns.Select(c => c.IsPrimaryKey ? "default" : CreateDefaultValue(c.DataType)));
-        builder.Append(')');
-        return builder.ToString();
+        // var builder = new StringBuilder();
+        // var columns = executionNode.ColumnInfos;
+        // builder.Append($"Insert into {executionNode.TableName} ");
+        //
+        // builder.Append('(');
+        // builder.AppendJoin(",", columns.Select(c => c.Name));
+        // builder.Append(')');
+        // builder.Append("Values");
+        // builder.Append('(');
+        // // builder.AppendJoin(",",
+        // //     columns.Select(c => c.IsPrimaryKey ? "default" : CreateDefaultValue(c.DataType)));
+        // builder.Append(')');
+        // return builder.ToString();
+        throw new NotImplementedException();
     }
 
 

@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Planto.Column;
 using Planto.DatabaseImplementation.MsSql.DataTypes;
 using Planto.OptionBuilder;
 using Testcontainers.MsSql;
@@ -59,412 +60,284 @@ public class AllDataTypesTableTest : IAsyncLifetime
                                                  );
                                                  """;
 
+    private readonly List<ColumnConstraint> _columnConstraints =
+    [
+        new()
+        {
+            ConstraintType = ConstraintType.PrimaryKey,
+            ColumnName = "id",
+            IsUnique = true,
+            IsForeignKey = false,
+            IsPrimaryKey = true,
+            ForeignTableName = null,
+            ForeignColumnName = null
+        }
+    ];
 
     private readonly List<ColumnInfo> _columnInfos =
     [
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(int),
-            ForeignColumnName = null,
-            ForeignTableName = null,
-            Name = "id",
+            ColumnName = "id",
             IsNullable = false,
             IsIdentity = true,
-            IsPrimaryKey = true
         },
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(int),
-            ForeignColumnName = null,
-            ForeignTableName = null,
-            Name = "int_column",
+            ColumnName = "int_column",
             IsNullable = false,
             IsIdentity = false,
-            IsPrimaryKey = false
         },
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(int),
-            ForeignColumnName = null,
-            ForeignTableName = null,
-            Name = "int_column_null",
+            ColumnName = "int_column_null",
             IsNullable = true,
             IsIdentity = false,
-            IsPrimaryKey = false
         },
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(byte),
-            ForeignColumnName = null,
-            ForeignTableName = null,
-            Name = "tinyint_column",
+            ColumnName = "tinyint_column",
             IsNullable = false,
             IsIdentity = false,
-            IsPrimaryKey = false
         },
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(short),
-            ForeignColumnName = null,
-            ForeignTableName = null,
-            Name = "smallint_column",
+            ColumnName = "smallint_column",
             IsNullable = false,
             IsIdentity = false,
-            IsPrimaryKey = false
         },
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(long),
-            ForeignColumnName = null,
-            ForeignTableName = null,
-            Name = "bigint_column",
+            ColumnName = "bigint_column",
             IsNullable = false,
             IsIdentity = false,
-            IsPrimaryKey = false
         },
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(decimal),
-            ForeignColumnName = null,
-            ForeignTableName = null,
-            Name = "decimal_column",
+            ColumnName = "decimal_column",
             IsNullable = false,
             IsIdentity = false,
-            IsPrimaryKey = false
         },
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(decimal),
-            ForeignColumnName = null,
-            ForeignTableName = null,
-            Name = "numeric_column",
+            ColumnName = "numeric_column",
             IsNullable = false,
             IsIdentity = false,
-            IsPrimaryKey = false
         },
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(double),
-            ForeignColumnName = null,
-            ForeignTableName = null,
-            Name = "float_column",
+            ColumnName = "float_column",
             IsNullable = false,
             IsIdentity = false,
-            IsPrimaryKey = false
         },
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(float),
-            ForeignColumnName = null,
-            ForeignTableName = null,
-            Name = "real_column",
+            ColumnName = "real_column",
             IsNullable = false,
             IsIdentity = false,
-            IsPrimaryKey = false
         },
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(decimal),
-            ForeignColumnName = null,
-            ForeignTableName = null,
-            Name = "money_column",
+            ColumnName = "money_column",
             IsNullable = false,
             IsIdentity = false,
-            IsPrimaryKey = false
         },
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(decimal),
-            ForeignColumnName = null,
-            ForeignTableName = null,
-            Name = "smallmoney_column",
+            ColumnName = "smallmoney_column",
             IsNullable = false,
             IsIdentity = false,
-            IsPrimaryKey = false
         },
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(string),
-            ForeignColumnName = null,
-            ForeignTableName = null,
-            Name = "char_column",
+            ColumnName = "char_column",
             MaxCharLen = 10,
             IsNullable = false,
             IsIdentity = false,
-            IsPrimaryKey = false
         },
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(string),
-            ForeignColumnName = null,
-            ForeignTableName = null,
+            ColumnName = "varchar_column",
             MaxCharLen = 100,
-            Name = "varchar_column",
             IsNullable = false,
             IsIdentity = false,
-            IsPrimaryKey = false
         },
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(string),
-            ForeignColumnName = null,
-            ForeignTableName = null,
+            ColumnName = "varchar_max_column",
             MaxCharLen = -1,
-            Name = "varchar_max_column",
             IsNullable = false,
             IsIdentity = false,
-            IsPrimaryKey = false
         },
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(string),
-            ForeignColumnName = null,
-            ForeignTableName = null,
-            Name = "text_column",
+            ColumnName = "text_column",
             MaxCharLen = 2147483647,
             IsNullable = false,
             IsIdentity = false,
-            IsPrimaryKey = false
         },
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(string),
-            ForeignColumnName = null,
-            ForeignTableName = null,
-            Name = "nchar_column",
+            ColumnName = "nchar_column",
             MaxCharLen = 10,
             IsNullable = false,
             IsIdentity = false,
-            IsPrimaryKey = false
         },
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(string),
-            ForeignColumnName = null,
-            ForeignTableName = null,
-            Name = "nvarchar_column",
+            ColumnName = "nvarchar_column",
             MaxCharLen = 100,
             IsNullable = false,
             IsIdentity = false,
-            IsPrimaryKey = false
         },
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(string),
-            ForeignColumnName = null,
-            ForeignTableName = null,
-            Name = "ntext_column",
+            ColumnName = "ntext_column",
             MaxCharLen = 1073741823,
             IsNullable = false,
             IsIdentity = false,
-            IsPrimaryKey = false
         },
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(DateTime),
-            ForeignColumnName = null,
-            ForeignTableName = null,
-            Name = "date_column",
+            ColumnName = "date_column",
             IsNullable = false,
             IsIdentity = false,
-            IsPrimaryKey = false
         },
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(DateTime),
-            ForeignColumnName = null,
-            ForeignTableName = null,
-            Name = "datetime_column",
+            ColumnName = "datetime_column",
             IsNullable = false,
             IsIdentity = false,
-            IsPrimaryKey = false
         },
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(DateTime),
-            ForeignColumnName = null,
-            ForeignTableName = null,
-            Name = "datetime2_column",
+            ColumnName = "datetime2_column",
             IsNullable = false,
             IsIdentity = false,
-            IsPrimaryKey = false
         },
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(DateTime),
-            ForeignColumnName = null,
-            ForeignTableName = null,
-            Name = "smalldatetime_column",
+            ColumnName = "smalldatetime_column",
             IsNullable = false,
             IsIdentity = false,
-            IsPrimaryKey = false
         },
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(TimeSpan),
-            ForeignColumnName = null,
-            ForeignTableName = null,
-            Name = "time_column",
+            ColumnName = "time_column",
             IsNullable = false,
             IsIdentity = false,
-            IsPrimaryKey = false
         },
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(DateTimeOffset),
-            ForeignColumnName = null,
-            ForeignTableName = null,
-            Name = "datetimeoffset_column",
+            ColumnName = "datetimeoffset_column",
             IsNullable = false,
             IsIdentity = false,
-            IsPrimaryKey = false
         },
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(byte[]),
-            ForeignColumnName = null,
-            ForeignTableName = null,
-            Name = "binary_column",
+            ColumnName = "binary_column",
             MaxCharLen = 50,
             IsNullable = false,
             IsIdentity = false,
-            IsPrimaryKey = false
         },
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(byte[]),
-            ForeignColumnName = null,
-            ForeignTableName = null,
-            Name = "varbinary_column",
+            ColumnName = "varbinary_column",
             MaxCharLen = 50,
             IsNullable = false,
             IsIdentity = false,
-            IsPrimaryKey = false
         },
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(byte[]),
-            ForeignColumnName = null,
-            ForeignTableName = null,
-            Name = "image_column",
+            ColumnName = "image_column",
             MaxCharLen = 2147483647,
             IsNullable = false,
             IsIdentity = false,
-            IsPrimaryKey = false
         },
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(bool),
-            ForeignColumnName = null,
-            ForeignTableName = null,
-            Name = "bit_column",
+            ColumnName = "bit_column",
             IsNullable = false,
             IsIdentity = false,
-            IsPrimaryKey = false
         },
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(Guid),
-            ForeignColumnName = null,
-            ForeignTableName = null,
-            Name = "uniqueidentifier_column",
+            ColumnName = "uniqueidentifier_column",
             IsNullable = false,
             IsIdentity = false,
-            IsPrimaryKey = false
         },
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(string),
-            ForeignColumnName = null,
-            ForeignTableName = null,
-            Name = "xml_column",
+            ColumnName = "xml_column",
             MaxCharLen = -1,
             IsNullable = false,
             IsIdentity = false,
-            IsPrimaryKey = false
         },
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(string),
-            ForeignColumnName = null,
-            ForeignTableName = null,
-            Name = "json_column",
+            ColumnName = "json_column",
             MaxCharLen = -1,
             IsNullable = false,
             IsIdentity = false,
-            IsPrimaryKey = false
         },
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(HierarchyId),
-            ForeignColumnName = null,
-            ForeignTableName = null,
-            Name = "hierarchyid_column",
+            ColumnName = "hierarchyid_column",
             MaxCharLen = 892,
             IsNullable = false,
             IsIdentity = false,
-            IsPrimaryKey = false
         },
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(Geography),
-            ForeignColumnName = null,
-            ForeignTableName = null,
-            Name = "geography_column",
+            ColumnName = "geography_column",
             MaxCharLen = -1,
             IsNullable = false,
             IsIdentity = false,
-            IsPrimaryKey = false
         },
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(Geometry),
-            ForeignColumnName = null,
-            ForeignTableName = null,
-            Name = "geometry_column",
+            ColumnName = "geometry_column",
             MaxCharLen = -1,
             IsNullable = false,
             IsIdentity = false,
-            IsPrimaryKey = false
         }
     ];
 
-    
     private readonly MsSqlContainer _msSqlContainer = new MsSqlBuilder()
         .WithImage(
             "mcr.microsoft.com/mssql/server:2022-latest"
@@ -490,11 +363,14 @@ public class AllDataTypesTableTest : IAsyncLifetime
         var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
 
         // Act
-        var res = await planto.GetColumnInfo(TableName);
+        var res = await planto.GetTableInfo(TableName);
 
         // Assert
-        res.Should().HaveCount(_columnInfos.Count);
-        res.Should().BeEquivalentTo(_columnInfos);
+        res.ColumnInfos.Should().HaveCount(_columnInfos.Count);
+        res.ColumnInfos.Should().BeEquivalentTo(_columnInfos);
+        res.ColumnConstraints.Should().HaveCount(_columnConstraints.Count);
+        res.ColumnConstraints.Should()
+            .BeEquivalentTo(_columnConstraints, options => options.Excluding(x => x.ConstraintName));
     }
 
     [Fact]

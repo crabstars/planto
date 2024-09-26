@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Planto.Column;
 
 namespace Planto;
 
@@ -8,5 +9,5 @@ public class ExecutionNode
     public string? InsertStatement { get; set; }
     public ConcurrentBag<ExecutionNode> Children { get; set; } = [];
     public object? DbEntityId { get; set; }
-    public required List<ColumnInfo> ColumnInfos { get; set; }
+    public required TableInfo TableInfo { get; set; }
 }

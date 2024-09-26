@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Planto.Column;
 using Testcontainers.MsSql;
 using Xunit;
 
@@ -22,30 +23,49 @@ public class SimpleForeignKeyTableTest : IAsyncLifetime
                                             );
                                             """;
 
+    private readonly List<ColumnConstraint> _columnConstraints =
+    [
+        new()
+        {
+            ConstraintName = "FK_table1_table_with_foreign_key",
+            ConstraintType = ConstraintType.ForeignKey,
+            ColumnName = "refTable",
+            IsUnique = false,
+            IsForeignKey = true,
+            IsPrimaryKey = false,
+            ForeignTableName = "table1",
+            ForeignColumnName = "id"
+        },
+
+        new()
+        {
+            ConstraintName = "PK",
+            ConstraintType = ConstraintType.PrimaryKey,
+            ColumnName = "id",
+            IsUnique = true,
+            IsForeignKey = false,
+            IsPrimaryKey = true,
+            ForeignTableName = null,
+            ForeignColumnName = null
+        }
+    ];
+
 
     private readonly List<ColumnInfo> _columnInfos =
     [
         new()
         {
-            IsForeignKey = false,
             DataType = typeof(int),
-            ForeignColumnName = null,
-            ForeignTableName = null,
-            Name = "id",
+            ColumnName = "id",
             IsNullable = false,
             IsIdentity = true,
-            IsPrimaryKey = true
         },
         new()
         {
-            IsForeignKey = true,
             DataType = typeof(int),
-            ForeignColumnName = "id",
-            ForeignTableName = ReferenceTableName,
-            Name = "refTable",
+            ColumnName = "refTable",
             IsNullable = false,
             IsIdentity = false,
-            IsPrimaryKey = false
         }
     ];
 
@@ -74,11 +94,15 @@ public class SimpleForeignKeyTableTest : IAsyncLifetime
         var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
 
         // Act
-        var res = await planto.GetColumnInfo(TableName);
+        var res = await planto.GetTableInfo(TableName);
 
         // Assert
-        res.Should().HaveCount(_columnInfos.Count);
-        res.Should().BeEquivalentTo(_columnInfos);
+        res.ColumnInfos.Should().HaveCount(_columnInfos.Count);
+        res.ColumnInfos.Should().BeEquivalentTo(_columnInfos);
+        res.ColumnConstraints.Should().HaveCount(_columnConstraints.Count);
+        res.ColumnConstraints.Should().BeEquivalentTo(_columnConstraints,
+            options => options.Excluding(x => x.ConstraintName));
+        res.TableName.Should().Be(TableName);
     }
 
     [Fact]

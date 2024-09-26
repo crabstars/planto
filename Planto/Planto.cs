@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Planto.Column;
 using Planto.DatabaseImplementation;
 using Planto.DatabaseImplementation.MsSql;
 using Planto.DatabaseImplementation.NpgSql;
@@ -36,28 +37,105 @@ public class Planto
         return (TCast)await _dbSchemaHelper.Insert(await CreateExecutionTree(tableName), _options.ValueGeneration);
     }
 
-    internal async Task<List<ColumnInfo>> GetColumnInfo(string tableName)
+    internal async Task<TableInfo> GetTableInfo(string tableName)
     {
+        var tableInfo = new TableInfo(tableName);
+
+        var columInfos = await GetColumInfos(tableName).ConfigureAwait(false);
+        tableInfo.ColumnInfos.AddRange(columInfos);
+
+        var columnConstraints = await GetColumConstraints(tableName).ConfigureAwait(false);
+        tableInfo.ColumnConstraints.AddRange(columnConstraints);
+        return tableInfo;
+    }
+
+    private async Task<IEnumerable<ColumnConstraint>> GetColumConstraints(string tableName)
+    {
+        var columnConstraints = new List<ColumnConstraint>();
+
         await using var connection = await _dbSchemaHelper.GetOpenConnection();
-
         await using var command = connection.CreateCommand();
-        command.CommandText = _dbSchemaHelper.GetColumnInfoSql(tableName);
-        var dataReader = await command.ExecuteReaderAsync();
+        command.CommandText = _dbSchemaHelper.GetColumnConstraintsSql(tableName);
+        var dataReader = await command.ExecuteReaderAsync().ConfigureAwait(false);
 
-        var result = new List<ColumnInfo>();
-
-        while (await dataReader.ReadAsync())
+        while (await dataReader.ReadAsync().ConfigureAwait(false))
         {
-            var columnInfo = new ColumnInfo();
-            var properties = typeof(ColumnInfo).GetProperties();
+            var columnConstraint = new ColumnConstraint();
+            var properties = typeof(ColumnConstraint).GetProperties();
 
             foreach (var property in properties)
             {
                 var columnAttribute = property.GetCustomAttribute<ColumnAttribute>();
                 if (columnAttribute == null) continue;
                 var columnName = columnAttribute.Name ?? string.Empty;
+                try
+                {
+                    if (dataReader.IsDBNull(dataReader.GetOrdinal(columnName))) continue;
+                }
+                catch (Exception e)
+                {
+                    continue;
+                }
 
-                // improve not found columns, bec some columns are only used in some dbs
+                var value = dataReader[columnName];
+                if (property.PropertyType == typeof(bool) || property.PropertyType == typeof(bool?))
+                {
+                    property.SetValue(columnConstraint, Convert.ToBoolean(value));
+                }
+                else if (columnName == "constraint_type")
+                {
+                    switch (value)
+                    {
+                        case "FOREIGN KEY":
+                            property.SetValue(columnConstraint, ConstraintType.ForeignKey);
+                            break;
+                        case "PRIMARY KEY":
+                            property.SetValue(columnConstraint, ConstraintType.PrimaryKey);
+                            break;
+                        case "UNIQUE":
+                            property.SetValue(columnConstraint, ConstraintType.Unique);
+                            break;
+                        case "CHECK":
+                            property.SetValue(columnConstraint, ConstraintType.Check);
+                            Console.WriteLine("Warning: CHECK constraints are not yet supported");
+                            break;
+                        default:
+                            throw new NotSupportedException($"The type {value.GetType()} is not supported");
+                    }
+                }
+                else
+                {
+                    property.SetValue(columnConstraint, Convert.ToString(value));
+                }
+            }
+
+            columnConstraints.Add(columnConstraint);
+        }
+
+        return columnConstraints;
+    }
+
+    private async Task<IEnumerable<ColumnInfo>> GetColumInfos(string tableName)
+    {
+        var columnInfos = new List<ColumnInfo>();
+
+        await using var connection = await _dbSchemaHelper.GetOpenConnection();
+        await using var command = connection.CreateCommand();
+        command.CommandText = _dbSchemaHelper.GetColumnInfoSql(tableName);
+        var dataReader = await command.ExecuteReaderAsync().ConfigureAwait(false);
+
+        // read one column info at the time
+        while (await dataReader.ReadAsync().ConfigureAwait(false))
+        {
+            var columnInfo = new ColumnInfo();
+            var properties = typeof(ColumnInfo).GetProperties();
+
+            // add db vlaues to column info
+            foreach (var property in properties)
+            {
+                var columnAttribute = property.GetCustomAttribute<ColumnAttribute>();
+                if (columnAttribute == null) continue;
+                var columnName = columnAttribute.Name ?? string.Empty;
                 try
                 {
                     if (dataReader.IsDBNull(dataReader.GetOrdinal(columnName))) continue;
@@ -87,19 +165,10 @@ public class Planto
                 }
             }
 
-            result.Add(columnInfo);
+            columnInfos.Add(columnInfo);
         }
 
-        // Check if Columns are valid
-        // TODO add table name
-        if (result.DistinctBy(c => c.Name).Count() != result.Count)
-        {
-            throw new InvalidOperationException(
-                "You probably have at least one table with a foreign key which is connected to more than one table. " +
-                "This feature is not yet supported.");
-        }
-
-        return result;
+        return columnInfos;
     }
 
     internal async Task<ExecutionNode> CreateExecutionTree(string tableName)
@@ -107,7 +176,7 @@ public class Planto
         var newExecutionNode = new ExecutionNode
         {
             TableName = tableName,
-            ColumnInfos = await GetColumnInfo(tableName)
+            TableInfo = await GetTableInfo(tableName)
         };
 
         ParallelOptions parallelOptions = new()
@@ -115,13 +184,15 @@ public class Planto
             // TODO let user change this when creating new instance
             MaxDegreeOfParallelism = 3
         };
-        await Parallel.ForEachAsync(newExecutionNode.ColumnInfos.Where(c => c.IsForeignKey), parallelOptions,
-            async (columnInfo, token) =>
+        await Parallel.ForEachAsync(newExecutionNode.TableInfo.ColumnConstraints.Where(c => c.IsForeignKey),
+            parallelOptions,
+            async (columnConstraint, token) =>
             {
                 token.ThrowIfCancellationRequested();
                 newExecutionNode.Children.Add(
-                    await CreateExecutionTree(columnInfo.ForeignTableName ?? throw new InvalidOperationException()));
-            });
+                    await CreateExecutionTree(
+                        columnConstraint.ForeignTableName ?? throw new InvalidOperationException()));
+            }).ConfigureAwait(false);
 
         return newExecutionNode;
     }
