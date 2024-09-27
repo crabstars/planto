@@ -11,9 +11,9 @@ public class PrimaryKeyTests : IAsyncLifetime
     private const string TableName = "TestTable";
 
     private const string TableWithVarcharPk = $"""
-                                                                             CREATE TABLE {TableName} (
-                                                                                 id VARCHAR(100) PRIMARY KEY,
-                                                                             );  
+                                                                                                CREATE TABLE {TableName} (
+                                                                                                    id VARCHAR(100) PRIMARY KEY,
+                                                                                                ); 
                                                """;
 
     private readonly MsSqlContainer _msSqlContainer = new MsSqlBuilder()
@@ -52,23 +52,22 @@ public class PrimaryKeyTests : IAsyncLifetime
                 ColumnName = "id",
                 IsNullable = false,
                 IsIdentity = false,
-                MaxCharLen = 100
+                MaxCharLen = 100,
+                ColumnConstraints =
+                [
+                    new ColumnConstraint
+                    {
+                        IsForeignKey = false,
+                        ForeignColumnName = null,
+                        ForeignTableName = null,
+                        ColumnName = "id",
+                        IsPrimaryKey = true,
+                        IsUnique = true,
+                        ConstraintType = ConstraintType.PrimaryKey
+                    }
+                ]
             }
-        });
-
-        tableInfo.ColumnConstraints.Should().BeEquivalentTo(new List<ColumnConstraint>
-        {
-            new()
-            {
-                IsForeignKey = false,
-                ForeignColumnName = null,
-                ForeignTableName = null,
-                ColumnName = "id",
-                IsPrimaryKey = true,
-                IsUnique = true,
-                ConstraintType = ConstraintType.PrimaryKey
-            }
-        }, options => options.Excluding(x => x.ConstraintName));
+        }, options => options.Excluding(x => x.ColumnConstraints[0].ConstraintName));
     }
 
     [Fact]

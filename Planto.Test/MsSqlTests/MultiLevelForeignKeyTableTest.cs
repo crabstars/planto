@@ -25,7 +25,7 @@ public class MultiLevelForeignKeyTableTest : IAsyncLifetime
                                             CREATE TABLE TableD (
                                                 TableD_ID INT PRIMARY KEY IDENTITY(1,1),
                                                 NameD NVARCHAR(100),
-                                                TableE_ID INT,
+                                                TableE_ID INT NOT NULL,
                                                 FOREIGN KEY (TableE_ID) REFERENCES TableE(TableE_ID),
                                             );
 
@@ -33,8 +33,8 @@ public class MultiLevelForeignKeyTableTest : IAsyncLifetime
                                             CREATE TABLE TableB (
                                                 TableB_ID INT PRIMARY KEY IDENTITY(1,1),
                                                 NameB NVARCHAR(100),
-                                                TableC_ID INT,
-                                                TableD_ID INT,
+                                                TableC_ID INT NOT NULL,
+                                                TableD_ID INT NOT NULL,
                                                 FOREIGN KEY (TableC_ID) REFERENCES TableC(TableC_ID),
                                                 FOREIGN KEY (TableD_ID) REFERENCES TableD(TableD_ID)
                                             );
@@ -43,7 +43,7 @@ public class MultiLevelForeignKeyTableTest : IAsyncLifetime
                                             CREATE TABLE {TableName} (
                                                 TableA_ID INT PRIMARY KEY IDENTITY(1,1),
                                                 NameA NVARCHAR(100),
-                                                TableB_ID INT,
+                                                TableB_ID INT NOT NULL,
                                                 FOREIGN KEY (TableB_ID) REFERENCES TableB(TableB_ID)
                                             );
                                             """;
@@ -74,7 +74,7 @@ public class MultiLevelForeignKeyTableTest : IAsyncLifetime
         var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
 
         // Act
-        var tableA = await planto.CreateExecutionTree(TableName);
+        var tableA = await planto.CreateExecutionTree(TableName, null);
 
         // Assert
         tableA.Children.Count.Should().Be(1);
@@ -103,3 +103,28 @@ public class MultiLevelForeignKeyTableTest : IAsyncLifetime
         id2.Should().Be(2);
     }
 }
+// Test this case => improve db a biut
+// -- Table Products
+//     CREATE TABLE Products (
+//     ProductID INT PRIMARY KEY,
+//     ProductName VARCHAR(100)
+//     );
+//
+// -- Table Services
+//     CREATE TABLE Services (
+//     ServiceID INT PRIMARY KEY,
+//     ServiceName VARCHAR(100)
+//     );
+//
+// -- Transactions Table with two Foreign Keys
+//     CREATE TABLE Transactions2 (
+//     TransactionID INT PRIMARY KEY,
+//     ProductID INT,
+// ServiceID INT,
+//     FOREIGN KEY (ProductID) REFERENCES Products(ProductID),
+// FOREIGN KEY (ProductID) REFERENCES Services(ServiceID),
+// CHECK (
+//     (ProductID IS NOT NULL AND ServiceID IS NULL) OR
+//         (ProductID IS NULL AND ServiceID IS NOT NULL)
+//     )
+//     );

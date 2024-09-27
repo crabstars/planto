@@ -10,6 +10,12 @@ public class PlantoOptionBuilder
         return this;
     }
 
+    public PlantoOptionBuilder SetMaxDegreeOfParallelism(int maxDegreeOfParallelism)
+    {
+        _options.MaxDegreeOfParallelism = maxDegreeOfParallelism;
+        return this;
+    }
+
     public PlantoOptions Build()
     {
         return _options;

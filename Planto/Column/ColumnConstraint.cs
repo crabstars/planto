@@ -4,11 +4,11 @@ namespace Planto.Column;
 
 public class ColumnConstraint
 {
-    [Column("column_name")] public string ColumnName { get; set; }
+    [Column("column_name")] public string ColumnName { get; set; } = string.Empty;
 
     [Column("constraint_type")] public ConstraintType ConstraintType { get; set; }
 
-    [Column("constraint_name")] public string ConstraintName { get; set; }
+    [Column("constraint_name")] public string ConstraintName { get; set; } = string.Empty;
 
     [Column("is_primary_key")] public bool IsPrimaryKey { get; set; }
 

@@ -23,34 +23,6 @@ public class SimpleForeignKeyTableTest : IAsyncLifetime
                                             );
                                             """;
 
-    private readonly List<ColumnConstraint> _columnConstraints =
-    [
-        new()
-        {
-            ConstraintName = "FK_table1_table_with_foreign_key",
-            ConstraintType = ConstraintType.ForeignKey,
-            ColumnName = "refTable",
-            IsUnique = false,
-            IsForeignKey = true,
-            IsPrimaryKey = false,
-            ForeignTableName = "table1",
-            ForeignColumnName = "id"
-        },
-
-        new()
-        {
-            ConstraintName = "PK",
-            ConstraintType = ConstraintType.PrimaryKey,
-            ColumnName = "id",
-            IsUnique = true,
-            IsForeignKey = false,
-            IsPrimaryKey = true,
-            ForeignTableName = null,
-            ForeignColumnName = null
-        }
-    ];
-
-
     private readonly List<ColumnInfo> _columnInfos =
     [
         new()
@@ -59,6 +31,20 @@ public class SimpleForeignKeyTableTest : IAsyncLifetime
             ColumnName = "id",
             IsNullable = false,
             IsIdentity = true,
+            ColumnConstraints =
+            [
+                new ColumnConstraint
+                {
+                    ColumnName = "id",
+                    ConstraintName = "PK",
+                    ConstraintType = ConstraintType.PrimaryKey,
+                    IsUnique = true,
+                    IsForeignKey = false,
+                    IsPrimaryKey = true,
+                    ForeignTableName = null,
+                    ForeignColumnName = null
+                }
+            ]
         },
         new()
         {
@@ -66,6 +52,20 @@ public class SimpleForeignKeyTableTest : IAsyncLifetime
             ColumnName = "refTable",
             IsNullable = false,
             IsIdentity = false,
+            ColumnConstraints =
+            [
+                new ColumnConstraint
+                {
+                    ConstraintName = "FK_table1_table_with_foreign_key",
+                    ConstraintType = ConstraintType.ForeignKey,
+                    IsUnique = false,
+                    IsForeignKey = true,
+                    IsPrimaryKey = false,
+                    ForeignTableName = "table1",
+                    ForeignColumnName = "id",
+                    ColumnName = "refTable"
+                }
+            ]
         }
     ];
 
@@ -98,10 +98,12 @@ public class SimpleForeignKeyTableTest : IAsyncLifetime
 
         // Assert
         res.ColumnInfos.Should().HaveCount(_columnInfos.Count);
-        res.ColumnInfos.Should().BeEquivalentTo(_columnInfos);
-        res.ColumnConstraints.Should().HaveCount(_columnConstraints.Count);
-        res.ColumnConstraints.Should().BeEquivalentTo(_columnConstraints,
-            options => options.Excluding(x => x.ConstraintName));
+        res.ColumnInfos.Sum(c => c.ColumnConstraints.Count).Should()
+            .Be(_columnInfos.Sum(c => c.ColumnConstraints.Count));
+        res.ColumnInfos.Should().BeEquivalentTo(_columnInfos, options => options.Excluding(x => x.ColumnConstraints));
+        res.ColumnInfos.SelectMany(c => c.ColumnConstraints).Should()
+            .BeEquivalentTo(_columnInfos.SelectMany(c => c.ColumnConstraints),
+                options => options.Excluding(x => x.ConstraintName));
         res.TableName.Should().Be(TableName);
     }
 
@@ -112,7 +114,7 @@ public class SimpleForeignKeyTableTest : IAsyncLifetime
         var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
 
         // Act
-        var resExecutionNode = await planto.CreateExecutionTree(TableName);
+        var resExecutionNode = await planto.CreateExecutionTree(TableName, null);
 
         // Assert
         resExecutionNode.Children.Count.Should().Be(1);

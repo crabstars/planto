@@ -41,17 +41,11 @@ var id = await plantoDefaultValues.CreateEntity<int>(TableName);
 - WIP
 
 ## TODOs
-- improve Planto.cs line 95
-  - split into multiple queries
-    - get all columns with basic info
-    - get all constraints 
-- circle deps (break if already visited)
-- parse 1 and 0 to true and false in postgres => we can use the same sql 
 - transaction
-- self referencing tables
 - allow user to set values for main entity
 - cache columnInfo for tables
 - Support special PKs for MsSql
 - Logs
-- NpgSql
+- comment functions
 - DeSerialize
+- NpgSql

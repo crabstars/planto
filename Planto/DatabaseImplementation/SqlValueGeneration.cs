@@ -82,7 +82,7 @@ public static class SqlValueGeneration
         return valueGeneration == ValueGeneration.Default ? Guid.Empty : new Guid();
     }
 
-    public static object? CreateValueForMsSql(Type type, ValueGeneration valueGeneration, int size) => type switch
+    public static object? CreateValueForMsSql(Type? type, ValueGeneration valueGeneration, int size) => type switch
     {
         _ when type == typeof(string) => $"'{CreateString(valueGeneration, size)}'",
         _ when type == typeof(int) => CreateInt(valueGeneration),
@@ -103,7 +103,7 @@ public static class SqlValueGeneration
         _ when type == typeof(Geography) => new Geography().GetDefaultValue(), // TODO
         _ when type == typeof(Geometry) => new Geometry().GetDefaultValue(), // TODO
         _ when type == typeof(Guid) => $"'{CreateGuid(valueGeneration)}'",
-        _ when type.IsValueType => Activator.CreateInstance(type),
+        { IsValueType: true } => Activator.CreateInstance(type),
         _ => "NULL"
     };
 }

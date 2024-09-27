@@ -5,12 +5,16 @@ using Planto.Column;
 using Planto.DatabaseImplementation;
 using Planto.DatabaseImplementation.MsSql;
 using Planto.DatabaseImplementation.NpgSql;
+using Planto.Exceptions;
 using Planto.OptionBuilder;
 
 [assembly: InternalsVisibleTo("Planto.Test")]
 
 namespace Planto;
 
+/// <summary>
+/// Initializes a new instance of the Planto class
+/// </summary>
 public class Planto
 {
     private readonly IDatabaseSchemaHelper _dbSchemaHelper;
@@ -32,27 +36,34 @@ public class Planto
     }
 
 
+    /// <summary>
+    /// Creates an entity in the given table
+    /// </summary>
+    /// <param name="tableName">table in which an entity should be created</param>
+    /// <typeparam name="TCast">return type of the primary key</typeparam>
+    /// <returns>PrimaryKey of the created entity</returns>
     public async Task<TCast> CreateEntity<TCast>(string tableName)
     {
-        return (TCast)await _dbSchemaHelper.Insert(await CreateExecutionTree(tableName), _options.ValueGeneration);
+        return (TCast)await _dbSchemaHelper.Insert(await CreateExecutionTree(tableName, null),
+            _options.ValueGeneration);
     }
 
     internal async Task<TableInfo> GetTableInfo(string tableName)
     {
         var tableInfo = new TableInfo(tableName);
 
-        var columInfos = await GetColumInfos(tableName).ConfigureAwait(false);
-        tableInfo.ColumnInfos.AddRange(columInfos);
+        var columInfos = (await GetColumInfos(tableName).ConfigureAwait(false)).ToList();
 
-        var columnConstraints = await GetColumConstraints(tableName).ConfigureAwait(false);
-        tableInfo.ColumnConstraints.AddRange(columnConstraints);
+        await AddColumConstraints(columInfos, tableName).ConfigureAwait(false);
+        tableInfo.ColumnInfos.AddRange(columInfos);
+        if (tableInfo.ColumnInfos.Any(c => c.ColumnConstraints.Where(cc => cc.IsForeignKey).GroupBy(cc => cc.ColumnName)
+                .Any(gc => gc.Count() > 1)))
+            throw new NotSupportedException("Only tables with single foreign key constraints are supported.");
         return tableInfo;
     }
 
-    private async Task<IEnumerable<ColumnConstraint>> GetColumConstraints(string tableName)
+    private async Task AddColumConstraints(List<ColumnInfo> columnInfos, string tableName)
     {
-        var columnConstraints = new List<ColumnConstraint>();
-
         await using var connection = await _dbSchemaHelper.GetOpenConnection();
         await using var command = connection.CreateCommand();
         command.CommandText = _dbSchemaHelper.GetColumnConstraintsSql(tableName);
@@ -109,10 +120,9 @@ public class Planto
                 }
             }
 
-            columnConstraints.Add(columnConstraint);
+            columnInfos.Single(c => c.ColumnName == columnConstraint.ColumnName).ColumnConstraints
+                .Add(columnConstraint);
         }
-
-        return columnConstraints;
     }
 
     private async Task<IEnumerable<ColumnInfo>> GetColumInfos(string tableName)
@@ -171,29 +181,49 @@ public class Planto
         return columnInfos;
     }
 
-    internal async Task<ExecutionNode> CreateExecutionTree(string tableName)
+    internal async Task<ExecutionNode> CreateExecutionTree(string tableName, ExecutionNode? parent)
     {
         var newExecutionNode = new ExecutionNode
         {
             TableName = tableName,
-            TableInfo = await GetTableInfo(tableName)
+            TableInfo = await GetTableInfo(tableName),
+            Parent = parent
         };
+        CheckCircularDependency(tableName, parent);
 
         ParallelOptions parallelOptions = new()
         {
-            // TODO let user change this when creating new instance
-            MaxDegreeOfParallelism = 3
+            MaxDegreeOfParallelism = _options.MaxDegreeOfParallelism ?? 3
         };
-        await Parallel.ForEachAsync(newExecutionNode.TableInfo.ColumnConstraints.Where(c => c.IsForeignKey),
+
+        // IsNullable false ignores fk for self referencing tables or non-hierarchical tables
+        await Parallel.ForEachAsync(
+            newExecutionNode.TableInfo.ColumnInfos.Where(c => c is { IsForeignKey: true, IsNullable: false }),
             parallelOptions,
-            async (columnConstraint, token) =>
+            async (columnInfo, token) =>
             {
                 token.ThrowIfCancellationRequested();
+                // TODO Because a column can be a fk for multiple tables we should create n nodes but the ids has to be same
                 newExecutionNode.Children.Add(
                     await CreateExecutionTree(
-                        columnConstraint.ForeignTableName ?? throw new InvalidOperationException()));
+                        columnInfo.ColumnConstraints.Where(cc => cc.IsForeignKey)
+                            .Select(cc => cc.ForeignTableName).FirstOrDefault()
+                        ?? throw new InvalidOperationException("No Matching column_name when creating executionNode"),
+                        newExecutionNode));
             }).ConfigureAwait(false);
 
         return newExecutionNode;
+    }
+
+    private static void CheckCircularDependency(string tableName, ExecutionNode? parent)
+    {
+        var prevNode = parent;
+        while (prevNode is not null)
+        {
+            if (prevNode.TableName == tableName)
+                throw new CircularDependencyException(
+                    $"Circular dependency detected for table '{tableName}' where foreign key is not nullable");
+            prevNode = prevNode.Parent;
+        }
     }
 }

@@ -60,20 +60,6 @@ public class AllDataTypesTableTest : IAsyncLifetime
                                                  );
                                                  """;
 
-    private readonly List<ColumnConstraint> _columnConstraints =
-    [
-        new()
-        {
-            ConstraintType = ConstraintType.PrimaryKey,
-            ColumnName = "id",
-            IsUnique = true,
-            IsForeignKey = false,
-            IsPrimaryKey = true,
-            ForeignTableName = null,
-            ForeignColumnName = null
-        }
-    ];
-
     private readonly List<ColumnInfo> _columnInfos =
     [
         new()
@@ -82,6 +68,19 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ColumnName = "id",
             IsNullable = false,
             IsIdentity = true,
+            ColumnConstraints =
+            [
+                new ColumnConstraint
+                {
+                    ConstraintType = ConstraintType.PrimaryKey,
+                    IsUnique = true,
+                    IsForeignKey = false,
+                    IsPrimaryKey = true,
+                    ForeignTableName = null,
+                    ForeignColumnName = null,
+                    ColumnName = "id"
+                }
+            ]
         },
         new()
         {
@@ -367,10 +366,12 @@ public class AllDataTypesTableTest : IAsyncLifetime
 
         // Assert
         res.ColumnInfos.Should().HaveCount(_columnInfos.Count);
-        res.ColumnInfos.Should().BeEquivalentTo(_columnInfos);
-        res.ColumnConstraints.Should().HaveCount(_columnConstraints.Count);
-        res.ColumnConstraints.Should()
-            .BeEquivalentTo(_columnConstraints, options => options.Excluding(x => x.ConstraintName));
+        res.ColumnInfos.Sum(c => c.ColumnConstraints.Count).Should()
+            .Be(_columnInfos.Sum(c => c.ColumnConstraints.Count));
+        res.ColumnInfos.Should().BeEquivalentTo(_columnInfos, options => options.Excluding(x => x.ColumnConstraints));
+        res.ColumnInfos.SelectMany(c => c.ColumnConstraints).Should()
+            .BeEquivalentTo(_columnInfos.SelectMany(c => c.ColumnConstraints),
+                options => options.Excluding(x => x.ConstraintName));
     }
 
     [Fact]

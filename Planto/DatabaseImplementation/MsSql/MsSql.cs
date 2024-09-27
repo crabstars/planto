@@ -120,14 +120,15 @@ public class MsSql : IDatabaseSchemaHelper
 
     public async Task<object> Insert(ExecutionNode executionNode, ValueGeneration valueGeneration)
     {
-        var columns = executionNode.TableInfo.ColumnInfos.Where(c => !c.IsIdentity.HasValue || !c.IsIdentity.Value)
+        var columns = executionNode.TableInfo.ColumnInfos
+            .Where(c => (!c.IsIdentity.HasValue || !c.IsIdentity.Value) && !c.IsNullable)
             .ToList();
         var builder = new StringBuilder();
         builder.Append($"Insert into {executionNode.TableName} ");
 
         object? pk = null;
         if (columns.All(c =>
-                executionNode.TableInfo.ColumnIsPrimaryKey(c.ColumnName) && c.IsIdentity != null && c.IsIdentity.Value))
+                c is { IsPrimaryKey: true, IsIdentity: not null } && c.IsIdentity.Value))
         {
             builder.Append("DEFAULT VALUES;");
         }
@@ -141,12 +142,11 @@ public class MsSql : IDatabaseSchemaHelper
             var values = new List<object?>();
             foreach (var c in columns)
             {
-                if (executionNode.TableInfo.ColumnIsForeignKey(c.ColumnName))
+                if (c is { IsForeignKey: true, IsNullable: false })
                 {
                     var foreignKey =
-                        await Insert(executionNode.Children.Single(child => executionNode.TableInfo
-                            .ColumnConstraints.Any(cc =>
-                                cc.ForeignTableName == child.TableName && c.ColumnName == cc.ForeignColumnName)
+                        await Insert(executionNode.Children.Single(child => c.ColumnConstraints.Any(cc =>
+                            cc.ForeignTableName == child.TableName && c.ColumnName == cc.ForeignColumnName)
                         ), valueGeneration);
                     values.Add(foreignKey);
                 }
@@ -154,7 +154,7 @@ public class MsSql : IDatabaseSchemaHelper
                 {
                     var value = SqlValueGeneration.CreateValueForMsSql(c.DataType, valueGeneration, c.MaxCharLen);
                     values.Add(value);
-                    if (executionNode.TableInfo.ColumnIsPrimaryKey(c.ColumnName))
+                    if (c.IsPrimaryKey)
                         pk = value;
                 }
             }
@@ -166,8 +166,7 @@ public class MsSql : IDatabaseSchemaHelper
         if (pk is null)
         {
             builder.Append(executionNode.TableInfo.ColumnInfos.Any(c => c.DataType != typeof(int)
-                                                                        && executionNode.TableInfo.ColumnIsPrimaryKey(
-                                                                            c.ColumnName))
+                                                                        && c.IsPrimaryKey)
                 ? LastIdDecimalSql
                 : LastIdIntSql);
         }
