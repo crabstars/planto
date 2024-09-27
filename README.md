@@ -2,6 +2,11 @@
 
 Simple DB seeding for entities which have foreign keys
 
+## NuGet
+
+https://www.nuget.org/packages/Planto or<br>
+`dotnet add package Planto --version 0.1.0`
+
 ## What
 
 Seed entities in a database and automatically created related entities.
