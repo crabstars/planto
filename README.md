@@ -1,6 +1,7 @@
 # Planto
 
-Simple DB seeding for entities which have foreign keys
+Simple DB seeding for entities which have foreign keys.<br>
+Currently only supporting Sql Server(MsSql)
 
 ## NuGet
 
