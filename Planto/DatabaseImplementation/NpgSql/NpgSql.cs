@@ -102,6 +102,31 @@ public class NpgSql : IDatabaseSchemaHelper
         return connection;
     }
 
+    public Task CloseConnection()
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task StartTransaction()
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task CommitTransaction()
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task RollbackTransaction()
+    {
+        throw new NotImplementedException();
+    }
+
+    public DbTransaction GetDbTransaction()
+    {
+        throw new NotImplementedException();
+    }
+
     public object? CreateDefaultValue(Type type) => type switch
     {
         _ when type == typeof(string) => "''",

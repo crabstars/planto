@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Planto.Test.Helper;
 using Testcontainers.MsSql;
 using Xunit;
 
@@ -71,7 +72,8 @@ public class MultiLevelForeignKeyTableTest : IAsyncLifetime
     public async Task CreateExecutionTree_ForMultiLevelFkTables()
     {
         // Arrange
-        var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
+        await using var planto =
+            new Planto(_msSqlContainer.GetConnectionStringWithMultipleActiveResultSet(), DbmsType.MsSql);
 
         // Act
         var tableA = await planto.CreateExecutionTree(TableName, null);
@@ -92,7 +94,7 @@ public class MultiLevelForeignKeyTableTest : IAsyncLifetime
     public async Task CreateMultipleEntities_ForMultiLevelFkTables()
     {
         // Arrange
-        var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
+        var planto = new Planto(_msSqlContainer.GetConnectionStringWithMultipleActiveResultSet(), DbmsType.MsSql);
 
         // Act
         var id1 = await planto.CreateEntity<int>(TableName);

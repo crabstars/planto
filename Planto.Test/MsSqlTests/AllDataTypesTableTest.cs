@@ -2,6 +2,7 @@ using FluentAssertions;
 using Planto.Column;
 using Planto.DatabaseImplementation.MsSql.DataTypes;
 using Planto.OptionBuilder;
+using Planto.Test.Helper;
 using Testcontainers.MsSql;
 using Xunit;
 
@@ -359,7 +360,8 @@ public class AllDataTypesTableTest : IAsyncLifetime
     public async Task AllTypesTable_CheckColumnInfo()
     {
         // Arrange
-        var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
+        await using var planto =
+            new Planto(_msSqlContainer.GetConnectionStringWithMultipleActiveResultSet(), DbmsType.MsSql);
 
         // Act
         var res = await planto.GetTableInfo(TableName);
@@ -406,7 +408,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
     public async Task InsertForAllDataTypes2Entities_UseRandomValues()
     {
         // Arrange
-        var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql,
+        var planto = new Planto(_msSqlContainer.GetConnectionStringWithMultipleActiveResultSet(), DbmsType.MsSql,
             options =>
                 options.SetValueGeneration(ValueGeneration.Random));
 

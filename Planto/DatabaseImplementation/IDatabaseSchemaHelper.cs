@@ -14,4 +14,12 @@ public interface IDatabaseSchemaHelper
     public Task<object> Insert(ExecutionNode executionNode, ValueGeneration valueGeneration);
 
     public Task<DbConnection> GetOpenConnection();
+
+    public Task CloseConnection();
+
+    public Task StartTransaction();
+    public Task CommitTransaction();
+    public Task RollbackTransaction();
+
+    public DbTransaction GetDbTransaction();
 }

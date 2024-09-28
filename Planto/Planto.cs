@@ -15,7 +15,7 @@ namespace Planto;
 /// <summary>
 /// Initializes a new instance of the Planto class
 /// </summary>
-public class Planto
+public class Planto : IAsyncDisposable
 {
     private readonly IDatabaseSchemaHelper _dbSchemaHelper;
     private readonly PlantoOptions _options;
@@ -35,6 +35,11 @@ public class Planto
         };
     }
 
+    public async ValueTask DisposeAsync()
+    {
+        await _dbSchemaHelper.CloseConnection().ConfigureAwait(false);
+    }
+
 
     /// <summary>
     /// Creates an entity in the given table
@@ -44,8 +49,19 @@ public class Planto
     /// <returns>PrimaryKey of the created entity</returns>
     public async Task<TCast> CreateEntity<TCast>(string tableName)
     {
-        return (TCast)await _dbSchemaHelper.Insert(await CreateExecutionTree(tableName, null),
-            _options.ValueGeneration);
+        try
+        {
+            await _dbSchemaHelper.StartTransaction();
+            var id = (TCast)await _dbSchemaHelper.Insert(await CreateExecutionTree(tableName, null),
+                _options.ValueGeneration);
+            await _dbSchemaHelper.CommitTransaction();
+            return id;
+        }
+        catch (Exception e)
+        {
+            await _dbSchemaHelper.RollbackTransaction();
+            throw new PlantoDbException("Exception occured, rollback done", e);
+        }
     }
 
     internal async Task<TableInfo> GetTableInfo(string tableName)
@@ -56,6 +72,8 @@ public class Planto
 
         await AddColumConstraints(columInfos, tableName).ConfigureAwait(false);
         tableInfo.ColumnInfos.AddRange(columInfos);
+
+        // Validate table
         if (tableInfo.ColumnInfos.Any(c => c.ColumnConstraints.Where(cc => cc.IsForeignKey).GroupBy(cc => cc.ColumnName)
                 .Any(gc => gc.Count() > 1)))
             throw new NotSupportedException("Only tables with single foreign key constraints are supported.");
@@ -64,10 +82,11 @@ public class Planto
 
     private async Task AddColumConstraints(List<ColumnInfo> columnInfos, string tableName)
     {
-        await using var connection = await _dbSchemaHelper.GetOpenConnection();
+        var connection = await _dbSchemaHelper.GetOpenConnection();
         await using var command = connection.CreateCommand();
+        command.Transaction = _dbSchemaHelper.GetDbTransaction();
         command.CommandText = _dbSchemaHelper.GetColumnConstraintsSql(tableName);
-        var dataReader = await command.ExecuteReaderAsync().ConfigureAwait(false);
+        await using var dataReader = await command.ExecuteReaderAsync().ConfigureAwait(false);
 
         while (await dataReader.ReadAsync().ConfigureAwait(false))
         {
@@ -129,10 +148,11 @@ public class Planto
     {
         var columnInfos = new List<ColumnInfo>();
 
-        await using var connection = await _dbSchemaHelper.GetOpenConnection();
+        var connection = await _dbSchemaHelper.GetOpenConnection();
         await using var command = connection.CreateCommand();
+        command.Transaction = _dbSchemaHelper.GetDbTransaction();
         command.CommandText = _dbSchemaHelper.GetColumnInfoSql(tableName);
-        var dataReader = await command.ExecuteReaderAsync().ConfigureAwait(false);
+        await using var dataReader = await command.ExecuteReaderAsync().ConfigureAwait(false);
 
         // read one column info at the time
         while (await dataReader.ReadAsync().ConfigureAwait(false))

@@ -1,3 +1,4 @@
+using System.Data;
 using System.Data.Common;
 using System.Text;
 using Microsoft.Data.SqlClient;
@@ -11,6 +12,8 @@ public class MsSql : IDatabaseSchemaHelper
     private const string LastIdIntSql = "SELECT CAST(SCOPE_IDENTITY() AS INT) AS GeneratedID;";
     private const string LastIdDecimalSql = "SELECT SCOPE_IDENTITY() AS GeneratedID;";
     private readonly string _connectionString;
+    private DbConnection? _dbConnection;
+    private DbTransaction? _dbTransaction;
 
     public MsSql(string connectionString)
     {
@@ -120,6 +123,8 @@ public class MsSql : IDatabaseSchemaHelper
 
     public async Task<object> Insert(ExecutionNode executionNode, ValueGeneration valueGeneration)
     {
+        var connection = await GetOpenConnection();
+
         var columns = executionNode.TableInfo.ColumnInfos
             .Where(c => (!c.IsIdentity.HasValue || !c.IsIdentity.Value) && !c.IsNullable)
             .ToList();
@@ -173,8 +178,8 @@ public class MsSql : IDatabaseSchemaHelper
 
         var insertStatement = builder.ToString();
         executionNode.InsertStatement = insertStatement;
-        await using var connection = await GetOpenConnection();
         await using var command = connection.CreateCommand();
+        command.Transaction = GetDbTransaction();
         command.CommandText = insertStatement;
 
         try
@@ -202,18 +207,69 @@ public class MsSql : IDatabaseSchemaHelper
             Console.WriteLine(e);
             throw;
         }
-        finally
-        {
-            await connection.CloseAsync();
-        }
 
         throw new InvalidOperationException("Could not get GeneratedID. See logs");
     }
 
     public async Task<DbConnection> GetOpenConnection()
     {
-        var connection = new SqlConnection(_connectionString);
-        await connection.OpenAsync();
-        return connection;
+        if (_dbConnection is not null && _dbConnection.State == ConnectionState.Open)
+        {
+            return _dbConnection;
+        }
+
+        _dbConnection = new SqlConnection(_connectionString);
+        await _dbConnection.OpenAsync().ConfigureAwait(false);
+        return _dbConnection;
+    }
+
+    public async Task CloseConnection()
+    {
+        if (_dbConnection is not null && _dbConnection.State != ConnectionState.Closed)
+        {
+            await _dbConnection.CloseAsync().ConfigureAwait(false);
+        }
+
+        if (_dbConnection != null)
+        {
+            await _dbConnection.DisposeAsync().ConfigureAwait(false);
+            _dbConnection = null;
+        }
+    }
+
+    public async Task StartTransaction()
+    {
+        _dbConnection ??= await GetOpenConnection().ConfigureAwait(false);
+
+        // Bad Code because of !
+        _dbTransaction = await _dbConnection.BeginTransactionAsync().ConfigureAwait(false);
+    }
+
+    public async Task CommitTransaction()
+    {
+        if (_dbTransaction != null)
+        {
+            await _dbTransaction.CommitAsync().ConfigureAwait(false);
+            await _dbTransaction.DisposeAsync().ConfigureAwait(false);
+            _dbTransaction = null;
+            await CloseConnection().ConfigureAwait(false);
+        }
+    }
+
+    public async Task RollbackTransaction()
+    {
+        if (_dbTransaction != null)
+        {
+            await _dbTransaction.RollbackAsync().ConfigureAwait(false);
+            await _dbTransaction.DisposeAsync().ConfigureAwait(false);
+            _dbTransaction = null;
+            await CloseConnection().ConfigureAwait(false);
+        }
+    }
+
+    public DbTransaction GetDbTransaction()
+    {
+        //TODO
+        return _dbTransaction!;
     }
 }
