@@ -7,73 +7,13 @@ using Planto.OptionBuilder;
 
 namespace Planto.DatabaseImplementation.MsSql;
 
-public class MsSql : IDatabaseSchemaHelper
+public class MsSql(string connectionString) : IDatabaseProviderHelper
 {
     private const string LastIdIntSql = "SELECT CAST(SCOPE_IDENTITY() AS INT) AS GeneratedID;";
     private const string LastIdDecimalSql = "SELECT SCOPE_IDENTITY() AS GeneratedID;";
-    private readonly string _connectionString;
+
     private DbConnection? _dbConnection;
     private DbTransaction? _dbTransaction;
-
-    public MsSql(string connectionString)
-    {
-        _connectionString = connectionString;
-    }
-
-    public string GetColumnInfoSql(string tableName)
-    {
-        return $"""
-                SELECT
-                    c.column_name,
-                    c.data_type,
-                    c.character_maximum_length,
-                case
-                    when c.is_nullable = 'YES' then 1
-                    else 0
-                end as is_nullable,
-                CASE
-                     WHEN COLUMNPROPERTY(object_id(c.TABLE_SCHEMA + '.' + c.TABLE_NAME), c.COLUMN_NAME, 'IsIdentity') = 1 THEN 1
-                     ELSE 0
-                end AS is_identity
-                FROM
-                    INFORMATION_SCHEMA.COLUMNS c
-                WHERE
-                    c.table_name = '{tableName}';
-                """;
-    }
-
-    public string GetColumnConstraintsSql(string tableName)
-    {
-        return $"""
-                SELECT
-                    tc.CONSTRAINT_NAME as constraint_name,
-                    tc.CONSTRAINT_TYPE as constraint_type,
-                    c.column_name,
-                    CASE WHEN tc.CONSTRAINT_TYPE IN ('PRIMARY KEY', 'UNIQUE') THEN 1 ELSE 0 END AS is_unique,
-                    CASE WHEN tc.CONSTRAINT_TYPE = 'FOREIGN KEY' THEN 1 ELSE 0 END AS is_foreign_key,
-                    CASE WHEN tc.CONSTRAINT_TYPE = 'PRIMARY KEY' THEN 1 ELSE 0 END AS is_primary_key,
-                    CASE 
-                        WHEN tc.CONSTRAINT_TYPE = 'FOREIGN KEY' THEN OBJECT_NAME(fk.referenced_object_id)
-                        ELSE NULL
-                    END AS foreign_table_name,
-                    CASE 
-                        WHEN tc.CONSTRAINT_TYPE = 'FOREIGN KEY' THEN COL_NAME(fk.referenced_object_id, fkc.referenced_column_id)
-                        ELSE NULL
-                    END AS foreign_column_name
-                FROM 
-                    INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
-                LEFT JOIN 
-                    INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu ON kcu.table_name = tc.table_name AND kcu.constraint_name = tc.constraint_name
-                LEFT JOIN 
-                    INFORMATION_SCHEMA.COLUMNS c ON c.table_name = kcu.table_name AND c.column_name = kcu.column_name                    
-                LEFT JOIN 
-                    sys.foreign_keys fk ON tc.CONSTRAINT_NAME = fk.name
-                LEFT JOIN 
-                    sys.foreign_key_columns fkc ON fk.object_id = fkc.constraint_object_id
-                WHERE 
-                    c.table_name = '{tableName}';
-                """;
-    }
 
     public Type MapToSystemType(string sqlType)
     {
@@ -119,6 +59,47 @@ public class MsSql : IDatabaseSchemaHelper
         }
 
         throw new ArgumentException($"SQL Type '{sqlType}' not recognized.");
+    }
+
+    public async Task<DbDataReader> GetColumnConstraints(string tableName)
+    {
+        var connection = await GetOpenConnection();
+        await using var command = connection.CreateCommand();
+        command.Transaction = GetDbTransaction();
+        command.CommandText = GetColumnConstraintsSql(tableName);
+        return await command.ExecuteReaderAsync().ConfigureAwait(false);
+    }
+
+    public async Task<DbDataReader> GetColumInfos(string tableName)
+    {
+        var connection = await GetOpenConnection();
+        await using var command = connection.CreateCommand();
+        command.Transaction = GetDbTransaction();
+        command.CommandText = GetColumnInfoSql(tableName);
+        return await command.ExecuteReaderAsync().ConfigureAwait(false);
+    }
+
+    public async Task<TCast> CreateEntity<TCast>(ExecutionNode executionNode, PlantoOptions plantoOptions)
+    {
+        try
+        {
+            await StartTransaction();
+            var id = (TCast)await Insert(executionNode, plantoOptions.ValueGeneration);
+            await CommitTransaction();
+            return id;
+        }
+        catch (Exception)
+        {
+            await RollbackTransaction();
+            throw;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_dbConnection != null) await _dbConnection.DisposeAsync().ConfigureAwait(false);
+        if (_dbTransaction != null) await _dbTransaction.DisposeAsync().ConfigureAwait(false);
+        await CloseConnection().ConfigureAwait(false);
     }
 
     public async Task<object> Insert(ExecutionNode executionNode, ValueGeneration valueGeneration)
@@ -218,7 +199,7 @@ public class MsSql : IDatabaseSchemaHelper
             return _dbConnection;
         }
 
-        _dbConnection = new SqlConnection(_connectionString);
+        _dbConnection = new SqlConnection(connectionString);
         await _dbConnection.OpenAsync().ConfigureAwait(false);
         return _dbConnection;
     }
@@ -269,7 +250,61 @@ public class MsSql : IDatabaseSchemaHelper
 
     public DbTransaction GetDbTransaction()
     {
-        //TODO
-        return _dbTransaction!;
+        return _dbTransaction ?? throw new InvalidOperationException("Call StartTransaction before Get");
+    }
+
+    private string GetColumnInfoSql(string tableName)
+    {
+        return $"""
+                SELECT
+                    c.column_name,
+                    c.data_type,
+                    c.character_maximum_length,
+                case
+                    when c.is_nullable = 'YES' then 1
+                    else 0
+                end as is_nullable,
+                CASE
+                     WHEN COLUMNPROPERTY(object_id(c.TABLE_SCHEMA + '.' + c.TABLE_NAME), c.COLUMN_NAME, 'IsIdentity') = 1 THEN 1
+                     ELSE 0
+                end AS is_identity
+                FROM
+                    INFORMATION_SCHEMA.COLUMNS c
+                WHERE
+                    c.table_name = '{tableName}';
+                """;
+    }
+
+    private string GetColumnConstraintsSql(string tableName)
+    {
+        return $"""
+                SELECT
+                    tc.CONSTRAINT_NAME as constraint_name,
+                    tc.CONSTRAINT_TYPE as constraint_type,
+                    c.column_name,
+                    CASE WHEN tc.CONSTRAINT_TYPE IN ('PRIMARY KEY', 'UNIQUE') THEN 1 ELSE 0 END AS is_unique,
+                    CASE WHEN tc.CONSTRAINT_TYPE = 'FOREIGN KEY' THEN 1 ELSE 0 END AS is_foreign_key,
+                    CASE WHEN tc.CONSTRAINT_TYPE = 'PRIMARY KEY' THEN 1 ELSE 0 END AS is_primary_key,
+                    CASE 
+                        WHEN tc.CONSTRAINT_TYPE = 'FOREIGN KEY' THEN OBJECT_NAME(fk.referenced_object_id)
+                        ELSE NULL
+                    END AS foreign_table_name,
+                    CASE 
+                        WHEN tc.CONSTRAINT_TYPE = 'FOREIGN KEY' THEN COL_NAME(fk.referenced_object_id, fkc.referenced_column_id)
+                        ELSE NULL
+                    END AS foreign_column_name
+                FROM 
+                    INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
+                LEFT JOIN 
+                    INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu ON kcu.table_name = tc.table_name AND kcu.constraint_name = tc.constraint_name
+                LEFT JOIN 
+                    INFORMATION_SCHEMA.COLUMNS c ON c.table_name = kcu.table_name AND c.column_name = kcu.column_name                    
+                LEFT JOIN 
+                    sys.foreign_keys fk ON tc.CONSTRAINT_NAME = fk.name
+                LEFT JOIN 
+                    sys.foreign_key_columns fkc ON fk.object_id = fkc.constraint_object_id
+                WHERE 
+                    c.table_name = '{tableName}';
+                """;
     }
 }

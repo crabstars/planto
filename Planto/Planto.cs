@@ -17,7 +17,7 @@ namespace Planto;
 /// </summary>
 public class Planto : IAsyncDisposable
 {
-    private readonly IDatabaseSchemaHelper _dbSchemaHelper;
+    private readonly IDatabaseProviderHelper _dbProviderHelper;
     private readonly PlantoOptions _options;
 
     public Planto(string connectionString, DbmsType dbmsType, Action<PlantoOptionBuilder>? configureOptions = null)
@@ -25,9 +25,9 @@ public class Planto : IAsyncDisposable
         var optionsBuilder = new PlantoOptionBuilder();
         configureOptions?.Invoke(optionsBuilder);
         _options = optionsBuilder.Build();
-        _dbSchemaHelper = dbmsType switch
+        _dbProviderHelper = dbmsType switch
         {
-            DbmsType.NpgSql => new NpgSql(connectionString),
+            DbmsType.NpgSql => new NpgSql(),
             DbmsType.MsSql => new MsSql(connectionString),
             _ => throw new ArgumentException(
                 "Only NpgsqlConnection and SqlConnection are supported right now.\nConnection Type: "
@@ -37,7 +37,7 @@ public class Planto : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        await _dbSchemaHelper.CloseConnection().ConfigureAwait(false);
+        await _dbProviderHelper.DisposeAsync();
     }
 
 
@@ -51,15 +51,10 @@ public class Planto : IAsyncDisposable
     {
         try
         {
-            await _dbSchemaHelper.StartTransaction();
-            var id = (TCast)await _dbSchemaHelper.Insert(await CreateExecutionTree(tableName, null),
-                _options.ValueGeneration);
-            await _dbSchemaHelper.CommitTransaction();
-            return id;
+            return await _dbProviderHelper.CreateEntity<TCast>(await CreateExecutionTree(tableName, null), _options);
         }
         catch (Exception e)
         {
-            await _dbSchemaHelper.RollbackTransaction();
             throw new PlantoDbException("Exception occured, rollback done", e);
         }
     }
@@ -82,11 +77,7 @@ public class Planto : IAsyncDisposable
 
     private async Task AddColumConstraints(List<ColumnInfo> columnInfos, string tableName)
     {
-        var connection = await _dbSchemaHelper.GetOpenConnection();
-        await using var command = connection.CreateCommand();
-        command.Transaction = _dbSchemaHelper.GetDbTransaction();
-        command.CommandText = _dbSchemaHelper.GetColumnConstraintsSql(tableName);
-        await using var dataReader = await command.ExecuteReaderAsync().ConfigureAwait(false);
+        await using var dataReader = await _dbProviderHelper.GetColumnConstraints(tableName);
 
         while (await dataReader.ReadAsync().ConfigureAwait(false))
         {
@@ -148,11 +139,7 @@ public class Planto : IAsyncDisposable
     {
         var columnInfos = new List<ColumnInfo>();
 
-        var connection = await _dbSchemaHelper.GetOpenConnection();
-        await using var command = connection.CreateCommand();
-        command.Transaction = _dbSchemaHelper.GetDbTransaction();
-        command.CommandText = _dbSchemaHelper.GetColumnInfoSql(tableName);
-        await using var dataReader = await command.ExecuteReaderAsync().ConfigureAwait(false);
+        await using var dataReader = await _dbProviderHelper.GetColumInfos(tableName);
 
         // read one column info at the time
         while (await dataReader.ReadAsync().ConfigureAwait(false))
@@ -187,7 +174,7 @@ public class Planto : IAsyncDisposable
                 else if (property.PropertyType == typeof(Type))
                 {
                     property.SetValue(columnInfo,
-                        _dbSchemaHelper.MapToSystemType(Convert.ToString(value) ?? string.Empty));
+                        _dbProviderHelper.MapToSystemType(Convert.ToString(value) ?? string.Empty));
                 }
                 else
                 {
@@ -234,6 +221,7 @@ public class Planto : IAsyncDisposable
 
         return newExecutionNode;
     }
+
 
     private static void CheckCircularDependency(string tableName, ExecutionNode? parent)
     {

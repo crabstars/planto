@@ -1,16 +1,47 @@
 using System.Data.Common;
-using Npgsql;
 using Planto.OptionBuilder;
 
 namespace Planto.DatabaseImplementation.NpgSql;
 
-public class NpgSql : IDatabaseSchemaHelper
+public class NpgSql : IDatabaseProviderHelper
 {
-    private readonly string _connectionString;
-
-    public NpgSql(string connectionString)
+    public Task<DbDataReader> GetColumInfos(string tableName)
     {
-        _connectionString = connectionString;
+        throw new NotImplementedException();
+    }
+
+    public Task<DbDataReader> GetColumnConstraints(string tableName)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<TCast> CreateEntity<TCast>(ExecutionNode executionNode, PlantoOptions plantoOptions)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Type MapToSystemType(string pgType) => pgType.ToLower() switch
+    {
+        "integer" => typeof(int),
+        "int" => typeof(int),
+        "bigint" => typeof(long),
+        "real" => typeof(float),
+        "double precision" => typeof(double),
+        "numeric" or "money" => typeof(decimal),
+        "text" or "character varying" or "varchar" => typeof(string),
+        "boolean" => typeof(bool),
+        "date" => typeof(DateTime),
+        "timestamp" or "timestamp without time zone" => typeof(DateTime),
+        "timestamp with time zone" => typeof(DateTimeOffset),
+        "time" or "time without time zone" => typeof(TimeSpan),
+        "bytea" => typeof(byte[]),
+        "uuid" => typeof(Guid),
+        _ => typeof(object)
+    };
+
+    public ValueTask DisposeAsync()
+    {
+        throw new NotImplementedException();
     }
 
     public string GetColumnInfoSql(string tableName)
@@ -56,25 +87,6 @@ public class NpgSql : IDatabaseSchemaHelper
         throw new NotImplementedException();
     }
 
-    public Type MapToSystemType(string pgType) => pgType.ToLower() switch
-    {
-        "integer" => typeof(int),
-        "int" => typeof(int),
-        "bigint" => typeof(long),
-        "real" => typeof(float),
-        "double precision" => typeof(double),
-        "numeric" or "money" => typeof(decimal),
-        "text" or "character varying" or "varchar" => typeof(string),
-        "boolean" => typeof(bool),
-        "date" => typeof(DateTime),
-        "timestamp" or "timestamp without time zone" => typeof(DateTime),
-        "timestamp with time zone" => typeof(DateTimeOffset),
-        "time" or "time without time zone" => typeof(TimeSpan),
-        "bytea" => typeof(byte[]),
-        "uuid" => typeof(Guid),
-        _ => typeof(object)
-    };
-
 
     public async Task<object> Insert(ExecutionNode executionNode, ValueGeneration valueGeneration)
     {
@@ -97,9 +109,7 @@ public class NpgSql : IDatabaseSchemaHelper
 
     public async Task<DbConnection> GetOpenConnection()
     {
-        var connection = new NpgsqlConnection(_connectionString);
-        await connection.OpenAsync();
-        return connection;
+        throw new NotImplementedException();
     }
 
     public Task CloseConnection()
