@@ -11,7 +11,6 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler) : IDatabasePr
     private const string LastIdIntSql = "SELECT CAST(SCOPE_IDENTITY() AS INT) AS GeneratedID;";
     private const string LastIdDecimalSql = "SELECT SCOPE_IDENTITY() AS GeneratedID;";
 
-
     public Type MapToSystemType(string sqlType)
     {
         var sqlToCSharpMap = new Dictionary<string, Type>
@@ -74,12 +73,12 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler) : IDatabasePr
         return await command.ExecuteReaderAsync().ConfigureAwait(false);
     }
 
-    public async Task<TCast> CreateEntity<TCast>(ExecutionNode executionNode, PlantoOptions plantoOptions)
+    public async Task<TCast> CreateEntity<TCast>(object? data, ExecutionNode executionNode, PlantoOptions plantoOptions)
     {
         try
         {
             await connectionHandler.StartTransaction();
-            var id = (TCast)await Insert(executionNode, plantoOptions.ValueGeneration);
+            var id = (TCast)await Insert(data, executionNode, plantoOptions.ValueGeneration);
             await connectionHandler.CommitTransaction();
             return id;
         }
@@ -95,8 +94,10 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler) : IDatabasePr
         await connectionHandler.DisposeAsync();
     }
 
-    public async Task<object> Insert(ExecutionNode executionNode, ValueGeneration valueGeneration)
+    private async Task<object> Insert(object? data, ExecutionNode executionNode, ValueGeneration valueGeneration)
     {
+        // Note prefer Attribute, extract function to class which can be used by other
+        // TODO First check if data className or TableName Attribute matches the executionNode.TableName => yes then create new variable else null
         var connection = await connectionHandler.GetOpenConnection();
 
         var columns = executionNode.TableInfo.ColumnInfos
@@ -124,13 +125,14 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler) : IDatabasePr
                 if (c is { IsForeignKey: true, IsNullable: false })
                 {
                     var foreignKey =
-                        await Insert(executionNode.Children.Single(child => c.ColumnConstraints.Any(cc =>
+                        await Insert(data, executionNode.Children.Single(child => c.ColumnConstraints.Any(cc =>
                             cc.ForeignTableName == child.TableName && c.ColumnName == cc.ForeignColumnName)
                         ), valueGeneration);
                     values.Add(foreignKey);
                 }
                 else
                 {
+                    // TODO First check if created var is not null and then get first value ob prop where prop name is column_name or ColumnNameAttribute 
                     var value = SqlValueGeneration.CreateValueForMsSql(c.DataType, valueGeneration, c.MaxCharLen);
                     values.Add(value);
                     if (c.IsPrimaryKey)

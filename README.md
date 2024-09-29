@@ -6,7 +6,7 @@ Currently only supporting Sql Server(MsSql)
 ## NuGet
 
 https://www.nuget.org/packages/Planto or<br>
-`dotnet add package Planto --version 0.1.0`
+`dotnet add package Planto --version 0.2.0`
 
 ## What
 
@@ -60,3 +60,4 @@ var id = await plantoDefaultValues.CreateEntity<int>(TableName);
 - comment functions
 - DeSerialize
 - NpgSql
+- set values for indirect table entities

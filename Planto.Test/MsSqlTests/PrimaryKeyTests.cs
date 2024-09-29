@@ -12,9 +12,9 @@ public class PrimaryKeyTests : IAsyncLifetime
     private const string TableName = "TestTable";
 
     private const string TableWithVarcharPk = $"""
-                                                                                                CREATE TABLE {TableName} (
-                                                                                                    id VARCHAR(100) PRIMARY KEY,
-                                                                                                ); 
+                                                CREATE TABLE {TableName} (
+                                                    id VARCHAR(100) PRIMARY KEY,
+                                                ); 
                                                """;
 
     private readonly MsSqlContainer _msSqlContainer = new MsSqlBuilder()
@@ -26,6 +26,8 @@ public class PrimaryKeyTests : IAsyncLifetime
     public async Task InitializeAsync()
     {
         await _msSqlContainer.StartAsync();
+        var res = await _msSqlContainer.ExecScriptAsync(TableWithVarcharPk).ConfigureAwait(true);
+        res.Stderr.Should().BeEmpty();
     }
 
     public Task DisposeAsync()
@@ -37,8 +39,6 @@ public class PrimaryKeyTests : IAsyncLifetime
     public async Task ColumnInfoFor_TableWithVarcharPk()
     {
         // Arrange
-        var res = await _msSqlContainer.ExecScriptAsync(TableWithVarcharPk).ConfigureAwait(true);
-        res.Stderr.Should().BeEmpty();
         await using var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
 
         // Act
@@ -75,8 +75,6 @@ public class PrimaryKeyTests : IAsyncLifetime
     public async Task InsertRandomEntries_TableWithVarcharPk()
     {
         // Arrange
-        var res = await _msSqlContainer.ExecScriptAsync(TableWithVarcharPk).ConfigureAwait(true);
-        res.Stderr.Should().BeEmpty();
         var planto = new Planto(_msSqlContainer.GetConnectionStringWithMultipleActiveResultSet(), DbmsType.MsSql,
             options => options.SetValueGeneration(ValueGeneration.Random));
 
