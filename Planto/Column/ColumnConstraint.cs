@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Planto.Column;
 
-public class ColumnConstraint
+internal class ColumnConstraint
 {
     [Column("column_name")] public string ColumnName { get; set; } = string.Empty;
 

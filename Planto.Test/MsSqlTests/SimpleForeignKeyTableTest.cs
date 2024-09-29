@@ -91,7 +91,7 @@ public class SimpleForeignKeyTableTest : IAsyncLifetime
     public async Task TwoTablesConnectedWithFk_CheckColumnInfo()
     {
         // Arrange
-        var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
+        await using var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
 
         // Act
         var res = await planto.GetTableInfo(TableName);
@@ -111,7 +111,7 @@ public class SimpleForeignKeyTableTest : IAsyncLifetime
     public async Task CreateExecutionTree_For2TableDb()
     {
         // Arrange
-        var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
+        await using var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
 
         // Act
         var resExecutionNode = await planto.CreateExecutionTree(TableName, null);

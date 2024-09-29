@@ -30,10 +30,16 @@ var plantoDefaultValues = new Planto(_msSqlContainer.GetConnectionString(), Dbms
 var id = await plantoRandomValues.CreateEntity<int>(TableName);
 var id = await plantoDefaultValues.CreateEntity<int>(TableName);
 ```
-## Attention
+
+## Restrictions
+
+- supports only tables with a single primary key
+
+## Usage
 
 ### MsSql (Sql Server)
 
+- add `MultipleActiveResultSets=true;` to connection string or set `options.SetMaxDegreeOfParallelism(1)`
 - supports tables where id is managed by IDENTITY
   - if a PK is not IDENTITY it is important to change SetValueGeneration to Random
   ```c#
@@ -44,13 +50,12 @@ var id = await plantoDefaultValues.CreateEntity<int>(TableName);
 
 ### Postgres (NpgSql)
 
-- WIP
+- Coming soon
 
 ## TODOs
-- transaction
 - allow user to set values for main entity
 - cache columnInfo for tables
-- Support special PKs for MsSql
+- Support special PKs for MsSql, like multiple PKs
 - Logs
 - comment functions
 - DeSerialize

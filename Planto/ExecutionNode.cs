@@ -3,7 +3,7 @@ using Planto.Column;
 
 namespace Planto;
 
-public class ExecutionNode
+internal class ExecutionNode
 {
     public required string TableName { get; set; }
     public string? InsertStatement { get; set; }

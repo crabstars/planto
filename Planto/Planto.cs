@@ -3,8 +3,8 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using Planto.Column;
 using Planto.DatabaseImplementation;
-using Planto.DatabaseImplementation.MsSql;
 using Planto.DatabaseImplementation.NpgSql;
+using Planto.DatabaseImplementation.SqlServer;
 using Planto.Exceptions;
 using Planto.OptionBuilder;
 
@@ -15,24 +15,30 @@ namespace Planto;
 /// <summary>
 /// Initializes a new instance of the Planto class
 /// </summary>
-public class Planto
+public class Planto : IAsyncDisposable
 {
-    private readonly IDatabaseSchemaHelper _dbSchemaHelper;
+    private readonly IDatabaseProviderHelper _dbProviderHelper;
     private readonly PlantoOptions _options;
 
     public Planto(string connectionString, DbmsType dbmsType, Action<PlantoOptionBuilder>? configureOptions = null)
     {
         var optionsBuilder = new PlantoOptionBuilder();
         configureOptions?.Invoke(optionsBuilder);
+        var connectionHandler = new DatabaseConnectionHandler.DatabaseConnectionHandler(connectionString);
         _options = optionsBuilder.Build();
-        _dbSchemaHelper = dbmsType switch
+        _dbProviderHelper = dbmsType switch
         {
-            DbmsType.NpgSql => new NpgSql(connectionString),
-            DbmsType.MsSql => new MsSql(connectionString),
+            DbmsType.NpgSql => new NpgSql(),
+            DbmsType.MsSql => new MsSql(connectionHandler),
             _ => throw new ArgumentException(
                 "Only NpgsqlConnection and SqlConnection are supported right now.\nConnection Type: "
                 + dbmsType)
         };
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await _dbProviderHelper.DisposeAsync();
     }
 
 
@@ -44,8 +50,14 @@ public class Planto
     /// <returns>PrimaryKey of the created entity</returns>
     public async Task<TCast> CreateEntity<TCast>(string tableName)
     {
-        return (TCast)await _dbSchemaHelper.Insert(await CreateExecutionTree(tableName, null),
-            _options.ValueGeneration);
+        try
+        {
+            return await _dbProviderHelper.CreateEntity<TCast>(await CreateExecutionTree(tableName, null), _options);
+        }
+        catch (Exception e)
+        {
+            throw new PlantoDbException("Exception occured, rollback done", e);
+        }
     }
 
     internal async Task<TableInfo> GetTableInfo(string tableName)
@@ -56,6 +68,8 @@ public class Planto
 
         await AddColumConstraints(columInfos, tableName).ConfigureAwait(false);
         tableInfo.ColumnInfos.AddRange(columInfos);
+
+        // Validate table
         if (tableInfo.ColumnInfos.Any(c => c.ColumnConstraints.Where(cc => cc.IsForeignKey).GroupBy(cc => cc.ColumnName)
                 .Any(gc => gc.Count() > 1)))
             throw new NotSupportedException("Only tables with single foreign key constraints are supported.");
@@ -64,10 +78,7 @@ public class Planto
 
     private async Task AddColumConstraints(List<ColumnInfo> columnInfos, string tableName)
     {
-        await using var connection = await _dbSchemaHelper.GetOpenConnection();
-        await using var command = connection.CreateCommand();
-        command.CommandText = _dbSchemaHelper.GetColumnConstraintsSql(tableName);
-        var dataReader = await command.ExecuteReaderAsync().ConfigureAwait(false);
+        await using var dataReader = await _dbProviderHelper.GetColumnConstraints(tableName);
 
         while (await dataReader.ReadAsync().ConfigureAwait(false))
         {
@@ -85,7 +96,7 @@ public class Planto
                 }
                 catch (Exception e)
                 {
-                    continue;
+                    throw new PlantoDbException("Could not found column name: " + columnName, e);
                 }
 
                 var value = dataReader[columnName];
@@ -129,10 +140,7 @@ public class Planto
     {
         var columnInfos = new List<ColumnInfo>();
 
-        await using var connection = await _dbSchemaHelper.GetOpenConnection();
-        await using var command = connection.CreateCommand();
-        command.CommandText = _dbSchemaHelper.GetColumnInfoSql(tableName);
-        var dataReader = await command.ExecuteReaderAsync().ConfigureAwait(false);
+        await using var dataReader = await _dbProviderHelper.GetColumInfos(tableName);
 
         // read one column info at the time
         while (await dataReader.ReadAsync().ConfigureAwait(false))
@@ -152,7 +160,7 @@ public class Planto
                 }
                 catch (Exception e)
                 {
-                    continue;
+                    throw new PlantoDbException("Could not found column name: " + columnName, e);
                 }
 
                 var value = dataReader[columnName];
@@ -167,7 +175,7 @@ public class Planto
                 else if (property.PropertyType == typeof(Type))
                 {
                     property.SetValue(columnInfo,
-                        _dbSchemaHelper.MapToSystemType(Convert.ToString(value) ?? string.Empty));
+                        _dbProviderHelper.MapToSystemType(Convert.ToString(value) ?? string.Empty));
                 }
                 else
                 {
@@ -214,6 +222,7 @@ public class Planto
 
         return newExecutionNode;
     }
+
 
     private static void CheckCircularDependency(string tableName, ExecutionNode? parent)
     {

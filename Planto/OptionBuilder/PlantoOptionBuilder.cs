@@ -2,7 +2,7 @@ namespace Planto.OptionBuilder;
 
 public class PlantoOptionBuilder
 {
-    private readonly PlantoOptions _options = new PlantoOptions();
+    private readonly PlantoOptions _options = new();
 
     public PlantoOptionBuilder SetValueGeneration(ValueGeneration valueGeneration)
     {

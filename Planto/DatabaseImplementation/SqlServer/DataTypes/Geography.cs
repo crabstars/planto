@@ -1,6 +1,6 @@
-namespace Planto.DatabaseImplementation.MsSql.DataTypes;
+namespace Planto.DatabaseImplementation.SqlServer.DataTypes;
 
-public class Geography : IMsSqlDataType
+internal class Geography : IMsSqlDataType
 {
     public string GetDefaultValue()
     {

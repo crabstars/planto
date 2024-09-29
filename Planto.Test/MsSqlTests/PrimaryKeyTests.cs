@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Planto.Column;
 using Planto.OptionBuilder;
+using Planto.Test.Helper;
 using Testcontainers.MsSql;
 using Xunit;
 
@@ -38,7 +39,7 @@ public class PrimaryKeyTests : IAsyncLifetime
         // Arrange
         var res = await _msSqlContainer.ExecScriptAsync(TableWithVarcharPk).ConfigureAwait(true);
         res.Stderr.Should().BeEmpty();
-        var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
+        await using var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
 
         // Act
         var tableInfo = await planto.GetTableInfo(TableName);
@@ -76,7 +77,7 @@ public class PrimaryKeyTests : IAsyncLifetime
         // Arrange
         var res = await _msSqlContainer.ExecScriptAsync(TableWithVarcharPk).ConfigureAwait(true);
         res.Stderr.Should().BeEmpty();
-        var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql,
+        var planto = new Planto(_msSqlContainer.GetConnectionStringWithMultipleActiveResultSet(), DbmsType.MsSql,
             options => options.SetValueGeneration(ValueGeneration.Random));
 
         // Act

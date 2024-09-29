@@ -1,6 +1,6 @@
-namespace Planto.DatabaseImplementation.MsSql.DataTypes;
+namespace Planto.DatabaseImplementation.SqlServer.DataTypes;
 
-public class HexByteArray : IMsSqlDataType
+internal class HexByteArray : IMsSqlDataType
 {
     public string GetDefaultValue()
     {

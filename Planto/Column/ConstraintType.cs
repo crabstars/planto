@@ -1,6 +1,6 @@
 namespace Planto.Column;
 
-public enum ConstraintType
+internal enum ConstraintType
 {
     ForeignKey,
     PrimaryKey,

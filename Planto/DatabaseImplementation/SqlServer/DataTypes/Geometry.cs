@@ -1,6 +1,6 @@
-namespace Planto.DatabaseImplementation.MsSql.DataTypes;
+namespace Planto.DatabaseImplementation.SqlServer.DataTypes;
 
-public class Geometry : IMsSqlDataType
+internal class Geometry : IMsSqlDataType
 {
     public string GetDefaultValue()
     {

@@ -136,7 +136,7 @@ public class CircualDependencyTableTest : IAsyncLifetime
         var act = async () => await planto.CreateEntity<int>(TableName);
 
         // Assert
-        await act.Should().ThrowAsync<CircularDependencyException>();
+        (await act.Should().ThrowAsync<PlantoDbException>()).WithInnerException<CircularDependencyException>();
     }
 
     [Fact]
@@ -200,6 +200,6 @@ public class CircualDependencyTableTest : IAsyncLifetime
         var act = async () => await planto.CreateEntity<int>(TableName);
 
         // Assert
-        await act.Should().ThrowAsync<CircularDependencyException>();
+        (await act.Should().ThrowAsync<PlantoDbException>()).WithInnerException<CircularDependencyException>();
     }
 }

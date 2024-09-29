@@ -1,11 +1,11 @@
 using System.Globalization;
-using Planto.DatabaseImplementation.MsSql.DataTypes;
+using Planto.DatabaseImplementation.SqlServer.DataTypes;
 using Planto.Extensions;
 using Planto.OptionBuilder;
 
 namespace Planto.DatabaseImplementation;
 
-public static class SqlValueGeneration
+internal static class SqlValueGeneration
 {
     private static string CreateString(ValueGeneration valueGeneration, int length)
     {
