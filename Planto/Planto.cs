@@ -41,7 +41,6 @@ public class Planto : IAsyncDisposable
         await _dbProviderHelper.DisposeAsync();
     }
 
-
     /// <summary>
     /// Creates an entity in the given table
     /// </summary>
