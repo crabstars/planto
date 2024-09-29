@@ -1,6 +1,6 @@
 namespace Planto.Column;
 
-public class TableInfo(string tableName)
+internal class TableInfo(string tableName)
 {
     public string TableName { get; set; } = tableName;
 

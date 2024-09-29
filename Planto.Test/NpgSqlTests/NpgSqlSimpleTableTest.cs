@@ -1,5 +1,3 @@
-namespace Planto.Test.NpgSqlTests;
-
 // public class NpgSqlSimpleTableTest : IAsyncLifetime
 // {
 //     private const string TableName = "customers";
@@ -95,3 +93,4 @@ namespace Planto.Test.NpgSqlTests;
 //         insertStatement.Should().Be("Insert into customers (customer_id,customer_name,email)Values(default,'','')");
 //     }
 // }
+

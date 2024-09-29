@@ -1,6 +1,6 @@
 namespace Planto.Exceptions;
 
-public class PlantoDbException : Exception
+internal class PlantoDbException : Exception
 {
     public PlantoDbException()
     {

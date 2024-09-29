@@ -1,6 +1,6 @@
 namespace Planto.Extensions;
 
-public static class StringExtensions
+internal static class StringExtensions
 {
     public static string Truncate(this string value, int maxChars)
     {

@@ -3,8 +3,8 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using Planto.Column;
 using Planto.DatabaseImplementation;
-using Planto.DatabaseImplementation.MsSql;
 using Planto.DatabaseImplementation.NpgSql;
+using Planto.DatabaseImplementation.SqlServer;
 using Planto.Exceptions;
 using Planto.OptionBuilder;
 
@@ -24,11 +24,12 @@ public class Planto : IAsyncDisposable
     {
         var optionsBuilder = new PlantoOptionBuilder();
         configureOptions?.Invoke(optionsBuilder);
+        var connectionHandler = new DatabaseConnectionHandler.DatabaseConnectionHandler(connectionString);
         _options = optionsBuilder.Build();
         _dbProviderHelper = dbmsType switch
         {
             DbmsType.NpgSql => new NpgSql(),
-            DbmsType.MsSql => new MsSql(connectionString),
+            DbmsType.MsSql => new MsSql(connectionHandler),
             _ => throw new ArgumentException(
                 "Only NpgsqlConnection and SqlConnection are supported right now.\nConnection Type: "
                 + dbmsType)
@@ -95,7 +96,7 @@ public class Planto : IAsyncDisposable
                 }
                 catch (Exception e)
                 {
-                    continue;
+                    throw new PlantoDbException("Could not found column name: " + columnName, e);
                 }
 
                 var value = dataReader[columnName];
@@ -159,7 +160,7 @@ public class Planto : IAsyncDisposable
                 }
                 catch (Exception e)
                 {
-                    continue;
+                    throw new PlantoDbException("Could not found column name: " + columnName, e);
                 }
 
                 var value = dataReader[columnName];

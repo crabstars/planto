@@ -1,6 +1,6 @@
 using FluentAssertions;
 using Planto.Column;
-using Planto.DatabaseImplementation.MsSql.DataTypes;
+using Planto.DatabaseImplementation.SqlServer.DataTypes;
 using Planto.OptionBuilder;
 using Planto.Test.Helper;
 using Testcontainers.MsSql;

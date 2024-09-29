@@ -3,7 +3,7 @@ using Planto.OptionBuilder;
 
 namespace Planto.DatabaseImplementation.NpgSql;
 
-public class NpgSql : IDatabaseProviderHelper
+internal class NpgSql : IDatabaseProviderHelper
 {
     public Task<DbDataReader> GetColumInfos(string tableName)
     {
@@ -88,7 +88,7 @@ public class NpgSql : IDatabaseProviderHelper
     }
 
 
-    public async Task<object> Insert(ExecutionNode executionNode, ValueGeneration valueGeneration)
+    public Task<object> Insert(ExecutionNode executionNode, ValueGeneration valueGeneration)
     {
         // var builder = new StringBuilder();
         // var columns = executionNode.ColumnInfos;
@@ -107,7 +107,7 @@ public class NpgSql : IDatabaseProviderHelper
     }
 
 
-    public async Task<DbConnection> GetOpenConnection()
+    public Task<DbConnection> GetOpenConnection()
     {
         throw new NotImplementedException();
     }
@@ -155,7 +155,7 @@ public class NpgSql : IDatabaseProviderHelper
         _ => null
     };
 
-    public object? CreateRandomValue(Type type, int size)
+    public object CreateRandomValue(Type type, int size)
     {
         throw new NotImplementedException();
     }

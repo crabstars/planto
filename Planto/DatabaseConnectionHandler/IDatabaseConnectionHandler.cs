@@ -1,11 +1,10 @@
 using System.Data.Common;
 
-namespace Planto.DatabaseImplementation;
+namespace Planto.DatabaseConnectionHandler;
 
-public interface IDatabaseConnectionHandler
+public interface IDatabaseConnectionHandler : IAsyncDisposable
 {
     public Task<DbConnection> GetOpenConnection();
-    public Task CloseConnection();
     public Task StartTransaction();
     public Task CommitTransaction();
     public Task RollbackTransaction();

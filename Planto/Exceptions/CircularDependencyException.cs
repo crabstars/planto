@@ -1,6 +1,6 @@
 namespace Planto.Exceptions;
 
-public class CircularDependencyException : Exception
+internal class CircularDependencyException : Exception
 {
     public CircularDependencyException()
     {

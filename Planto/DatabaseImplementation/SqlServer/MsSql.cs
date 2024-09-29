@@ -1,19 +1,16 @@
-using System.Data;
 using System.Data.Common;
 using System.Text;
-using Microsoft.Data.SqlClient;
-using Planto.DatabaseImplementation.MsSql.DataTypes;
+using Planto.DatabaseConnectionHandler;
+using Planto.DatabaseImplementation.SqlServer.DataTypes;
 using Planto.OptionBuilder;
 
-namespace Planto.DatabaseImplementation.MsSql;
+namespace Planto.DatabaseImplementation.SqlServer;
 
-public class MsSql(string connectionString) : IDatabaseProviderHelper
+internal class MsSql(IDatabaseConnectionHandler connectionHandler) : IDatabaseProviderHelper
 {
     private const string LastIdIntSql = "SELECT CAST(SCOPE_IDENTITY() AS INT) AS GeneratedID;";
     private const string LastIdDecimalSql = "SELECT SCOPE_IDENTITY() AS GeneratedID;";
 
-    private DbConnection? _dbConnection;
-    private DbTransaction? _dbTransaction;
 
     public Type MapToSystemType(string sqlType)
     {
@@ -63,18 +60,16 @@ public class MsSql(string connectionString) : IDatabaseProviderHelper
 
     public async Task<DbDataReader> GetColumnConstraints(string tableName)
     {
-        var connection = await GetOpenConnection();
+        var connection = await connectionHandler.GetOpenConnection();
         await using var command = connection.CreateCommand();
-        command.Transaction = GetDbTransaction();
         command.CommandText = GetColumnConstraintsSql(tableName);
         return await command.ExecuteReaderAsync().ConfigureAwait(false);
     }
 
     public async Task<DbDataReader> GetColumInfos(string tableName)
     {
-        var connection = await GetOpenConnection();
+        var connection = await connectionHandler.GetOpenConnection();
         await using var command = connection.CreateCommand();
-        command.Transaction = GetDbTransaction();
         command.CommandText = GetColumnInfoSql(tableName);
         return await command.ExecuteReaderAsync().ConfigureAwait(false);
     }
@@ -83,28 +78,26 @@ public class MsSql(string connectionString) : IDatabaseProviderHelper
     {
         try
         {
-            await StartTransaction();
+            await connectionHandler.StartTransaction();
             var id = (TCast)await Insert(executionNode, plantoOptions.ValueGeneration);
-            await CommitTransaction();
+            await connectionHandler.CommitTransaction();
             return id;
         }
         catch (Exception)
         {
-            await RollbackTransaction();
+            await connectionHandler.RollbackTransaction();
             throw;
         }
     }
 
     public async ValueTask DisposeAsync()
     {
-        if (_dbConnection != null) await _dbConnection.DisposeAsync().ConfigureAwait(false);
-        if (_dbTransaction != null) await _dbTransaction.DisposeAsync().ConfigureAwait(false);
-        await CloseConnection().ConfigureAwait(false);
+        await connectionHandler.DisposeAsync();
     }
 
     public async Task<object> Insert(ExecutionNode executionNode, ValueGeneration valueGeneration)
     {
-        var connection = await GetOpenConnection();
+        var connection = await connectionHandler.GetOpenConnection();
 
         var columns = executionNode.TableInfo.ColumnInfos
             .Where(c => (!c.IsIdentity.HasValue || !c.IsIdentity.Value) && !c.IsNullable)
@@ -160,7 +153,7 @@ public class MsSql(string connectionString) : IDatabaseProviderHelper
         var insertStatement = builder.ToString();
         executionNode.InsertStatement = insertStatement;
         await using var command = connection.CreateCommand();
-        command.Transaction = GetDbTransaction();
+        command.Transaction = connectionHandler.GetDbTransaction();
         command.CommandText = insertStatement;
 
         try
@@ -190,67 +183,6 @@ public class MsSql(string connectionString) : IDatabaseProviderHelper
         }
 
         throw new InvalidOperationException("Could not get GeneratedID. See logs");
-    }
-
-    public async Task<DbConnection> GetOpenConnection()
-    {
-        if (_dbConnection is not null && _dbConnection.State == ConnectionState.Open)
-        {
-            return _dbConnection;
-        }
-
-        _dbConnection = new SqlConnection(connectionString);
-        await _dbConnection.OpenAsync().ConfigureAwait(false);
-        return _dbConnection;
-    }
-
-    public async Task CloseConnection()
-    {
-        if (_dbConnection is not null && _dbConnection.State != ConnectionState.Closed)
-        {
-            await _dbConnection.CloseAsync().ConfigureAwait(false);
-        }
-
-        if (_dbConnection != null)
-        {
-            await _dbConnection.DisposeAsync().ConfigureAwait(false);
-            _dbConnection = null;
-        }
-    }
-
-    public async Task StartTransaction()
-    {
-        _dbConnection ??= await GetOpenConnection().ConfigureAwait(false);
-
-        // Bad Code because of !
-        _dbTransaction = await _dbConnection.BeginTransactionAsync().ConfigureAwait(false);
-    }
-
-    public async Task CommitTransaction()
-    {
-        if (_dbTransaction != null)
-        {
-            await _dbTransaction.CommitAsync().ConfigureAwait(false);
-            await _dbTransaction.DisposeAsync().ConfigureAwait(false);
-            _dbTransaction = null;
-            await CloseConnection().ConfigureAwait(false);
-        }
-    }
-
-    public async Task RollbackTransaction()
-    {
-        if (_dbTransaction != null)
-        {
-            await _dbTransaction.RollbackAsync().ConfigureAwait(false);
-            await _dbTransaction.DisposeAsync().ConfigureAwait(false);
-            _dbTransaction = null;
-            await CloseConnection().ConfigureAwait(false);
-        }
-    }
-
-    public DbTransaction GetDbTransaction()
-    {
-        return _dbTransaction ?? throw new InvalidOperationException("Call StartTransaction before Get");
     }
 
     private string GetColumnInfoSql(string tableName)

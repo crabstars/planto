@@ -3,7 +3,7 @@ using Planto.OptionBuilder;
 
 namespace Planto.DatabaseImplementation;
 
-public interface IDatabaseProviderHelper : IAsyncDisposable
+internal interface IDatabaseProviderHelper : IAsyncDisposable
 {
     public Type MapToSystemType(string sqlType);
 
