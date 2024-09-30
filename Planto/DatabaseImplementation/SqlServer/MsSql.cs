@@ -101,7 +101,9 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler, string? optio
         var connection = await connectionHandler.GetOpenConnection();
 
         var columns = executionNode.TableInfo.ColumnInfos
-            .Where(c => (!c.IsIdentity.HasValue || !c.IsIdentity.Value) && !c.IsNullable)
+            .Where(c => (!c.IsIdentity.HasValue || !c.IsIdentity.Value)
+                        && !c.IsNullable
+                        && c.ColumnConstraints.Any(cc => cc.IsUnique))
             .ToList();
         var builder = new StringBuilder();
         builder.Append($"Insert into {executionNode.TableName} ");
