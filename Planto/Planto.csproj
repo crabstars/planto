@@ -7,12 +7,16 @@
 
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageId>Planto</PackageId>
-        <Version>0.2.1</Version>
+        <Version>0.2.2</Version>
         <Authors>Daniel Waechtler</Authors>
         <Description>Fast and simple database seeding for specific tables</Description>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <RepositoryUrl>https://github.com/crabstars/planto</RepositoryUrl>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+
+        <!-- Debugging and symbols properties -->
+        <DebugType>embedded</DebugType>
+        <DebugSymbols>true</DebugSymbols>
     </PropertyGroup>
 
     <ItemGroup>
