@@ -57,6 +57,7 @@ var id = await plantoDefaultValues.CreateEntity<int>(TableName);
 - add test and readme for table schema
 - cache columnInfo for tables
 - Support special PKs for MsSql, like multiple PKs
+- improve multiple unique constraints for a table (mssql)
 - Logs
 - comment functions
 - DeSerialize
