@@ -15,6 +15,17 @@ public class PlantoOptionBuilder
         _options.MaxDegreeOfParallelism = maxDegreeOfParallelism;
         return this;
     }
+    
+    /// <summary>
+    /// If tableSchema is not specified (null or empty), INFORMATION_SCHEMA will include all schemas
+    /// </summary>
+    /// <param name="tableSchema"></param>
+    /// <returns></returns>
+    public PlantoOptionBuilder SetDefaultSchema(string tableSchema)
+    {
+        _options.TableSchema = tableSchema;
+        return this;
+    }
 
     public PlantoOptions Build()
     {

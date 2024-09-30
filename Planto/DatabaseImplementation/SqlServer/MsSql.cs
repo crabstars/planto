@@ -1,12 +1,13 @@
 using System.Data.Common;
 using System.Text;
+using Microsoft.IdentityModel.Tokens;
 using Planto.DatabaseConnectionHandler;
 using Planto.DatabaseImplementation.SqlServer.DataTypes;
 using Planto.OptionBuilder;
 
 namespace Planto.DatabaseImplementation.SqlServer;
 
-internal class MsSql(IDatabaseConnectionHandler connectionHandler) : IDatabaseProviderHelper
+internal class MsSql(IDatabaseConnectionHandler connectionHandler, string? optionsTableSchema) : IDatabaseProviderHelper
 {
     private const string LastIdIntSql = "SELECT CAST(SCOPE_IDENTITY() AS INT) AS GeneratedID;";
     private const string LastIdDecimalSql = "SELECT SCOPE_IDENTITY() AS GeneratedID;";
@@ -123,9 +124,13 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler) : IDatabasePr
             {
                 if (c is { IsForeignKey: true, IsNullable: false })
                 {
+                    // We could probably just check for ForeignTableName, but right now it improves my sanity
                     var foreignKey =
-                        await Insert(executionNode.Children.Single(child => c.ColumnConstraints.Any(cc =>
-                            cc.ForeignTableName == child.TableName && c.ColumnName == cc.ForeignColumnName)
+                        await Insert(executionNode.Children.Single(child =>
+                            c.ColumnConstraints.Where(cc => cc.IsForeignKey)
+                                .Any(cc => cc.ForeignTableName == child.TableName 
+                                           && child.TableInfo.ColumnInfos
+                                               .Any(ci => ci.ColumnName == cc.ForeignColumnName))
                         ), valueGeneration);
                     values.Add(foreignKey);
                 }
@@ -203,8 +208,8 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler) : IDatabasePr
                 FROM
                     INFORMATION_SCHEMA.COLUMNS c
                 WHERE
-                    c.table_name = '{tableName}';
-                """;
+                    c.TABLE_NAME = '{tableName}'
+                """ + FilterSchema() + ";";
     }
 
     private string GetColumnConstraintsSql(string tableName)
@@ -236,7 +241,12 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler) : IDatabasePr
                 LEFT JOIN 
                     sys.foreign_key_columns fkc ON fk.object_id = fkc.constraint_object_id
                 WHERE 
-                    c.table_name = '{tableName}';
-                """;
+                    c.TABLE_NAME = '{tableName}'
+                """ + FilterSchema() + ";";
+    }
+    
+    private string FilterSchema()
+    {
+        return !optionsTableSchema.IsNullOrEmpty() ? $" AND c.TABLE_SCHEMA = '{optionsTableSchema}'" : string.Empty;
     }
 }

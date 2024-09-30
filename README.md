@@ -6,7 +6,7 @@ Currently only supporting Sql Server(MsSql)
 ## NuGet
 
 https://www.nuget.org/packages/Planto or<br>
-`dotnet add package Planto --version 0.2.2`
+`dotnet add package Planto --version 0.3.1`
 
 ## What
 
@@ -54,6 +54,7 @@ var id = await plantoDefaultValues.CreateEntity<int>(TableName);
 
 ## TODOs
 - allow user to set values for main entity
+- add test and readme for table schema
 - cache columnInfo for tables
 - Support special PKs for MsSql, like multiple PKs
 - Logs
