@@ -15,7 +15,7 @@ internal class NpgSql : IDatabaseProviderHelper
         throw new NotImplementedException();
     }
 
-    public Task<TCast> CreateEntity<TCast>(ExecutionNode executionNode, PlantoOptions plantoOptions)
+    public Task<TCast> CreateEntity<TCast>(object? data, ExecutionNode? executionNode, PlantoOptions plantoOptions)
     {
         throw new NotImplementedException();
     }

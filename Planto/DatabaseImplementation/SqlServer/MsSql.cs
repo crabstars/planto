@@ -1,9 +1,9 @@
 using System.Data.Common;
 using System.Text;
-using Microsoft.IdentityModel.Tokens;
 using Planto.DatabaseConnectionHandler;
 using Planto.DatabaseImplementation.SqlServer.DataTypes;
 using Planto.OptionBuilder;
+using Planto.Reflection;
 
 namespace Planto.DatabaseImplementation.SqlServer;
 
@@ -11,7 +11,7 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler, string? optio
 {
     private const string LastIdIntSql = "SELECT CAST(SCOPE_IDENTITY() AS INT) AS GeneratedID;";
     private const string LastIdDecimalSql = "SELECT SCOPE_IDENTITY() AS GeneratedID;";
-
+    private readonly MsSqlQueries _queries = new(optionsTableSchema);
 
     public Type MapToSystemType(string sqlType)
     {
@@ -63,7 +63,7 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler, string? optio
     {
         var connection = await connectionHandler.GetOpenConnection();
         await using var command = connection.CreateCommand();
-        command.CommandText = GetColumnConstraintsSql(tableName);
+        command.CommandText = _queries.GetColumnConstraintsSql(tableName);
         return await command.ExecuteReaderAsync().ConfigureAwait(false);
     }
 
@@ -71,16 +71,16 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler, string? optio
     {
         var connection = await connectionHandler.GetOpenConnection();
         await using var command = connection.CreateCommand();
-        command.CommandText = GetColumnInfoSql(tableName);
+        command.CommandText = _queries.GetColumnInfoSql(tableName);
         return await command.ExecuteReaderAsync().ConfigureAwait(false);
     }
 
-    public async Task<TCast> CreateEntity<TCast>(ExecutionNode executionNode, PlantoOptions plantoOptions)
+    public async Task<TCast> CreateEntity<TCast>(object? data, ExecutionNode executionNode, PlantoOptions plantoOptions)
     {
         try
         {
             await connectionHandler.StartTransaction();
-            var id = (TCast)await Insert(executionNode, plantoOptions.ValueGeneration);
+            var id = (TCast)await Insert(data, executionNode, plantoOptions.ValueGeneration);
             await connectionHandler.CommitTransaction();
             return id;
         }
@@ -96,7 +96,7 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler, string? optio
         await connectionHandler.DisposeAsync();
     }
 
-    public async Task<object> Insert(ExecutionNode executionNode, ValueGeneration valueGeneration)
+    private async Task<object> Insert(object? data, ExecutionNode executionNode, ValueGeneration valueGeneration)
     {
         var connection = await connectionHandler.GetOpenConnection();
 
@@ -107,6 +107,7 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler, string? optio
         var builder = new StringBuilder();
         builder.Append($"Insert into {executionNode.TableName} ");
 
+        var matchesCurrentTable = AttributeHelper.CustomDataMatchesCurrentTable(data, executionNode.TableName);
         object? pk = null;
         if (columns.All(c =>
                 c is { IsPrimaryKey: true, IsIdentity: not null } && c.IsIdentity.Value))
@@ -127,9 +128,9 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler, string? optio
                 {
                     // We could probably just check for ForeignTableName, but right now it improves my sanity
                     var foreignKey =
-                        await Insert(executionNode.Children.Single(child =>
+                        await Insert(data, executionNode.Children.Single(child =>
                             c.ColumnConstraints.Where(cc => cc.IsForeignKey)
-                                .Any(cc => cc.ForeignTableName == child.TableName 
+                                .Any(cc => cc.ForeignTableName == child.TableName
                                            && child.TableInfo.ColumnInfos
                                                .Any(ci => ci.ColumnName == cc.ForeignColumnName))
                         ), valueGeneration);
@@ -137,7 +138,9 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler, string? optio
                 }
                 else
                 {
-                    var value = SqlValueGeneration.CreateValueForMsSql(c.DataType, valueGeneration, c.MaxCharLen);
+                    var value = matchesCurrentTable
+                        ? SqlValueGeneration.MapValueForMsSql(AttributeHelper.GetValueToCustomData(data, c.ColumnName))
+                        : SqlValueGeneration.CreateValueForMsSql(c.DataType, valueGeneration, c.MaxCharLen);
                     values.Add(value);
                     if (c.IsPrimaryKey)
                         pk = value;
@@ -189,65 +192,5 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler, string? optio
         }
 
         throw new InvalidOperationException("Could not get GeneratedID. See logs");
-    }
-
-    private string GetColumnInfoSql(string tableName)
-    {
-        return $"""
-                SELECT
-                    c.column_name,
-                    c.data_type,
-                    c.character_maximum_length,
-                case
-                    when c.is_nullable = 'YES' then 1
-                    else 0
-                end as is_nullable,
-                CASE
-                     WHEN COLUMNPROPERTY(object_id(c.TABLE_SCHEMA + '.' + c.TABLE_NAME), c.COLUMN_NAME, 'IsIdentity') = 1 THEN 1
-                     ELSE 0
-                end AS is_identity
-                FROM
-                    INFORMATION_SCHEMA.COLUMNS c
-                WHERE
-                    c.TABLE_NAME = '{tableName}'
-                """ + FilterSchema() + ";";
-    }
-
-    private string GetColumnConstraintsSql(string tableName)
-    {
-        return $"""
-                SELECT
-                    tc.CONSTRAINT_NAME as constraint_name,
-                    tc.CONSTRAINT_TYPE as constraint_type,
-                    c.column_name,
-                    CASE WHEN tc.CONSTRAINT_TYPE IN ('PRIMARY KEY', 'UNIQUE') THEN 1 ELSE 0 END AS is_unique,
-                    CASE WHEN tc.CONSTRAINT_TYPE = 'FOREIGN KEY' THEN 1 ELSE 0 END AS is_foreign_key,
-                    CASE WHEN tc.CONSTRAINT_TYPE = 'PRIMARY KEY' THEN 1 ELSE 0 END AS is_primary_key,
-                    CASE 
-                        WHEN tc.CONSTRAINT_TYPE = 'FOREIGN KEY' THEN OBJECT_NAME(fk.referenced_object_id)
-                        ELSE NULL
-                    END AS foreign_table_name,
-                    CASE 
-                        WHEN tc.CONSTRAINT_TYPE = 'FOREIGN KEY' THEN COL_NAME(fk.referenced_object_id, fkc.referenced_column_id)
-                        ELSE NULL
-                    END AS foreign_column_name
-                FROM 
-                    INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
-                LEFT JOIN 
-                    INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu ON kcu.table_name = tc.table_name AND kcu.constraint_name = tc.constraint_name
-                LEFT JOIN 
-                    INFORMATION_SCHEMA.COLUMNS c ON c.table_name = kcu.table_name AND c.column_name = kcu.column_name                    
-                LEFT JOIN 
-                    sys.foreign_keys fk ON tc.CONSTRAINT_NAME = fk.name
-                LEFT JOIN 
-                    sys.foreign_key_columns fkc ON fk.object_id = fkc.constraint_object_id
-                WHERE 
-                    c.TABLE_NAME = '{tableName}'
-                """ + FilterSchema() + ";";
-    }
-    
-    private string FilterSchema()
-    {
-        return !optionsTableSchema.IsNullOrEmpty() ? $" AND c.TABLE_SCHEMA = '{optionsTableSchema}'" : string.Empty;
     }
 }
