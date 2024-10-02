@@ -8,4 +8,6 @@ public class PlantoOptions
     /// how many max parallel sql connections should the library allowed to make to the database
     /// </summary>
     public int? MaxDegreeOfParallelism { get; set; }
+    
+    public string? TableSchema { get; set; }
 }

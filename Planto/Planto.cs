@@ -29,7 +29,7 @@ public class Planto : IAsyncDisposable
         _dbProviderHelper = dbmsType switch
         {
             DbmsType.NpgSql => new NpgSql(),
-            DbmsType.MsSql => new MsSql(connectionHandler),
+            DbmsType.MsSql => new MsSql(connectionHandler, _options.TableSchema),
             _ => throw new ArgumentException(
                 "Only NpgsqlConnection and SqlConnection are supported right now.\nConnection Type: "
                 + dbmsType)
