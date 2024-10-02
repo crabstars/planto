@@ -91,7 +91,7 @@ internal static class SqlValueGeneration
         _ when type == typeof(double) => CreateDouble(valueGeneration).ToString(CultureInfo.InvariantCulture),
         _ when type == typeof(decimal) => CreateDecimal(valueGeneration).ToString(CultureInfo.InvariantCulture),
         _ when type == typeof(bool) => CreateBool(valueGeneration) ? "0" : "1",
-        _ when type == typeof(DateTime) => $"'{CreateDateTime(valueGeneration):yyyy-MM-dd}'",
+        _ when type == typeof(DateTime) => $"'{CreateDateTime(valueGeneration):yyyy-MM-dd HH:mm:ss}'",
         _ when type == typeof(DateTimeOffset) => $"'{CreateDateTimeOffset(valueGeneration):yyyy-MM-dd HH:mm:ss zzz}'",
         _ when type == typeof(TimeSpan) => $"'{CreateTimeSpan(valueGeneration):hh\\:mm\\:ss}'",
         _ when type == typeof(byte[]) => valueGeneration == ValueGeneration.Default
@@ -106,4 +106,18 @@ internal static class SqlValueGeneration
         { IsValueType: true } => Activator.CreateInstance(type),
         _ => "NULL"
     };
+
+    public static object MapValueForMsSql(object? value)
+    {
+        return value switch
+        {
+            string s => $"'{s}'",
+            null => "NULL",
+            bool b => b ? "1" : "0",
+            DateTime dt => dt.ToString("yyyy-MM-dd HH:mm:ss"),
+            DateTimeOffset dto => dto.ToString("yyyy-MM-dd HH:mm:ss"),
+            TimeSpan timeSpan => $"'{timeSpan:hh\\:mm\\:ss}'",
+            _ => value
+        };
+    }
 }

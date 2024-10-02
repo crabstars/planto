@@ -7,7 +7,7 @@
 
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageId>Planto</PackageId>
-        <Version>0.3.3</Version>
+        <Version>0.4.0</Version>
         <Authors>Daniel Waechtler</Authors>
         <Description>Fast and simple database seeding for specific tables</Description>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
