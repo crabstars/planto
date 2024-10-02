@@ -101,11 +101,17 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler, string? optio
         var connection = await connectionHandler.GetOpenConnection();
 
         var columns = executionNode.TableInfo.ColumnInfos
-            .Where(c => (!c.IsIdentity.HasValue || !c.IsIdentity.Value)
-                        && (!c.IsNullable || c.ColumnConstraints.Any(cc => cc.IsUnique)))
+            .Where(c => !c.IsComputed && (!c.IsIdentity.HasValue || !c.IsIdentity.Value)
+                                      && (!c.IsNullable || c.ColumnConstraints.Any(cc => cc.IsUnique)))
             .ToList();
         var builder = new StringBuilder();
-        builder.Append($"Insert into {executionNode.TableName} ");
+        builder.Append("Insert into ");
+        if (optionsTableSchema is not null)
+        {
+            builder.Append($"{optionsTableSchema}.");
+        }
+
+        builder.Append($"{executionNode.TableName} ");
 
         var matchesCurrentTable = AttributeHelper.CustomDataMatchesCurrentTable(data, executionNode.TableName);
         object? pk = null;

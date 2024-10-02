@@ -51,6 +51,13 @@ new Planto(ConnectionString, DbmsType.MsSql,
 
 - add `MultipleActiveResultSets=true;` to your ConnectionString or set `options.SetMaxDegreeOfParallelism(1)`
 
+- if needed to set the `schema` use the options, else tables from all schemas are used
+
+```csharp
+new Planto(ConnectionString, DbmsType.MsSql,
+    options => options.SetDefaultSchema("myDbSchema"));
+ ```
+
 #### Use custom data
 
 Create a class and use the `TableName` and `ColumnName` attribute to match the database naming with your class.
@@ -80,8 +87,6 @@ await planto.CreateEntity<int>(TableName, new TestTable { name = myName, age = a
 - Coming soon
 
 ## TODOs
-- add test and readme for table schema
-- handle computed columns
 - handle simple check constraints
 - change custom data to list
 - cache columnInfo for tables

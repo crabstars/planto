@@ -58,6 +58,9 @@ public class AllDataTypesTableTest : IAsyncLifetime
                                                      hierarchyid_column HIERARCHYID NOT NULL,
                                                      geography_column GEOGRAPHY NOT NULL,
                                                      geometry_column GEOMETRY NOT NULL,
+                                                     
+                                                     -- Computed
+                                                     computed_column as char_column,
                                                  );
                                                  """;
 
@@ -69,6 +72,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ColumnName = "id",
             IsNullable = false,
             IsIdentity = true,
+            IsComputed = false,
             ColumnConstraints =
             [
                 new ColumnConstraint
@@ -89,6 +93,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ColumnName = "int_column",
             IsNullable = false,
             IsIdentity = false,
+            IsComputed = false,
         },
         new()
         {
@@ -96,6 +101,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ColumnName = "int_column_null",
             IsNullable = true,
             IsIdentity = false,
+            IsComputed = false,
         },
         new()
         {
@@ -103,6 +109,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ColumnName = "tinyint_column",
             IsNullable = false,
             IsIdentity = false,
+            IsComputed = false,
         },
         new()
         {
@@ -110,6 +117,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ColumnName = "smallint_column",
             IsNullable = false,
             IsIdentity = false,
+            IsComputed = false,
         },
         new()
         {
@@ -117,6 +125,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ColumnName = "bigint_column",
             IsNullable = false,
             IsIdentity = false,
+            IsComputed = false,
         },
         new()
         {
@@ -124,6 +133,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ColumnName = "decimal_column",
             IsNullable = false,
             IsIdentity = false,
+            IsComputed = false,
         },
         new()
         {
@@ -131,6 +141,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ColumnName = "numeric_column",
             IsNullable = false,
             IsIdentity = false,
+            IsComputed = false,
         },
         new()
         {
@@ -138,6 +149,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ColumnName = "float_column",
             IsNullable = false,
             IsIdentity = false,
+            IsComputed = false,
         },
         new()
         {
@@ -145,6 +157,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ColumnName = "real_column",
             IsNullable = false,
             IsIdentity = false,
+            IsComputed = false,
         },
         new()
         {
@@ -152,6 +165,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ColumnName = "money_column",
             IsNullable = false,
             IsIdentity = false,
+            IsComputed = false,
         },
         new()
         {
@@ -159,6 +173,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ColumnName = "smallmoney_column",
             IsNullable = false,
             IsIdentity = false,
+            IsComputed = false,
         },
         new()
         {
@@ -167,6 +182,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             MaxCharLen = 10,
             IsNullable = false,
             IsIdentity = false,
+            IsComputed = false,
         },
         new()
         {
@@ -175,6 +191,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             MaxCharLen = 100,
             IsNullable = false,
             IsIdentity = false,
+            IsComputed = false,
         },
         new()
         {
@@ -183,6 +200,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             MaxCharLen = -1,
             IsNullable = false,
             IsIdentity = false,
+            IsComputed = false,
         },
         new()
         {
@@ -191,6 +209,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             MaxCharLen = 2147483647,
             IsNullable = false,
             IsIdentity = false,
+            IsComputed = false,
         },
         new()
         {
@@ -199,6 +218,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             MaxCharLen = 10,
             IsNullable = false,
             IsIdentity = false,
+            IsComputed = false,
         },
         new()
         {
@@ -207,6 +227,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             MaxCharLen = 100,
             IsNullable = false,
             IsIdentity = false,
+            IsComputed = false,
         },
         new()
         {
@@ -215,6 +236,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             MaxCharLen = 1073741823,
             IsNullable = false,
             IsIdentity = false,
+            IsComputed = false,
         },
         new()
         {
@@ -222,6 +244,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ColumnName = "date_column",
             IsNullable = false,
             IsIdentity = false,
+            IsComputed = false,
         },
         new()
         {
@@ -229,6 +252,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ColumnName = "datetime_column",
             IsNullable = false,
             IsIdentity = false,
+            IsComputed = false,
         },
         new()
         {
@@ -236,6 +260,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ColumnName = "datetime2_column",
             IsNullable = false,
             IsIdentity = false,
+            IsComputed = false,
         },
         new()
         {
@@ -243,6 +268,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ColumnName = "smalldatetime_column",
             IsNullable = false,
             IsIdentity = false,
+            IsComputed = false,
         },
         new()
         {
@@ -250,6 +276,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ColumnName = "time_column",
             IsNullable = false,
             IsIdentity = false,
+            IsComputed = false,
         },
         new()
         {
@@ -257,6 +284,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ColumnName = "datetimeoffset_column",
             IsNullable = false,
             IsIdentity = false,
+            IsComputed = false,
         },
         new()
         {
@@ -264,6 +292,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ColumnName = "binary_column",
             MaxCharLen = 50,
             IsNullable = false,
+            IsComputed = false,
             IsIdentity = false,
         },
         new()
@@ -272,6 +301,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ColumnName = "varbinary_column",
             MaxCharLen = 50,
             IsNullable = false,
+            IsComputed = false,
             IsIdentity = false,
         },
         new()
@@ -279,6 +309,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             DataType = typeof(byte[]),
             ColumnName = "image_column",
             MaxCharLen = 2147483647,
+            IsComputed = false,
             IsNullable = false,
             IsIdentity = false,
         },
@@ -288,6 +319,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ColumnName = "bit_column",
             IsNullable = false,
             IsIdentity = false,
+            IsComputed = false,
         },
         new()
         {
@@ -295,6 +327,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ColumnName = "uniqueidentifier_column",
             IsNullable = false,
             IsIdentity = false,
+            IsComputed = false,
         },
         new()
         {
@@ -303,6 +336,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             MaxCharLen = -1,
             IsNullable = false,
             IsIdentity = false,
+            IsComputed = false,
         },
         new()
         {
@@ -310,6 +344,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             ColumnName = "json_column",
             MaxCharLen = -1,
             IsNullable = false,
+            IsComputed = false,
             IsIdentity = false,
         },
         new()
@@ -319,6 +354,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             MaxCharLen = 892,
             IsNullable = false,
             IsIdentity = false,
+            IsComputed = false,
         },
         new()
         {
@@ -327,6 +363,7 @@ public class AllDataTypesTableTest : IAsyncLifetime
             MaxCharLen = -1,
             IsNullable = false,
             IsIdentity = false,
+            IsComputed = false,
         },
         new()
         {
@@ -335,6 +372,16 @@ public class AllDataTypesTableTest : IAsyncLifetime
             MaxCharLen = -1,
             IsNullable = false,
             IsIdentity = false,
+            IsComputed = false,
+        },
+        new()
+        {
+            DataType = typeof(string),
+            ColumnName = "computed_column",
+            MaxCharLen = 10,
+            IsNullable = false,
+            IsIdentity = false,
+            IsComputed = true,
         }
     ];
 

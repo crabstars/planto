@@ -57,7 +57,7 @@ public class Planto : IAsyncDisposable
         }
         catch (Exception e)
         {
-            throw new PlantoDbException("Exception occured, rollback done", e);
+            throw new PlantoDbException("Exception occured, rollback done: " + e.Message, e);
         }
     }
 

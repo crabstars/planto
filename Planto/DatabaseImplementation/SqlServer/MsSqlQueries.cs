@@ -11,16 +11,28 @@ internal class MsSqlQueries(string? optionsTableSchema)
                     c.column_name,
                     c.data_type,
                     c.character_maximum_length,
-                case
-                    when c.is_nullable = 'YES' then 1
-                    else 0
-                end as is_nullable,
-                CASE
-                     WHEN COLUMNPROPERTY(object_id(c.TABLE_SCHEMA + '.' + c.TABLE_NAME), c.COLUMN_NAME, 'IsIdentity') = 1 THEN 1
-                     ELSE 0
-                end AS is_identity
+                    CASE
+                        WHEN c.is_nullable = 'YES' THEN 1
+                        ELSE 0
+                    END AS is_nullable,
+                    CASE
+                        WHEN COLUMNPROPERTY(object_id(c.TABLE_SCHEMA + '.' + c.TABLE_NAME), c.COLUMN_NAME, 'IsIdentity') = 1 THEN 1
+                        ELSE 0
+                    END AS is_identity,
+                    CASE
+                        WHEN cc.is_computed = 1 THEN 1
+                        ELSE 0
+                    END AS is_computed
                 FROM
                     INFORMATION_SCHEMA.COLUMNS c
+                LEFT JOIN
+                    sys.columns sc
+                    ON sc.object_id = OBJECT_ID(c.TABLE_SCHEMA + '.' + c.TABLE_NAME)
+                    AND sc.name = c.COLUMN_NAME
+                LEFT JOIN
+                    sys.computed_columns cc
+                    ON sc.object_id = cc.object_id
+                    AND sc.column_id = cc.column_id
                 WHERE
                     c.TABLE_NAME = '{tableName}'
                 """ + FilterSchema() + ";";

@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Planto.Test.MsSqlTests;
 
-public class PrimaryKeyTests : IAsyncLifetime
+public class PrimaryKeyTest : IAsyncLifetime
 {
     private const string TableName = "TestTable";
 

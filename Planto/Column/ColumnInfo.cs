@@ -15,6 +15,8 @@ internal class ColumnInfo
 
     [Column("is_identity")] public bool? IsIdentity { get; set; }
 
+    [Column("is_computed")] public bool IsComputed { get; set; }
+
     public List<ColumnConstraint> ColumnConstraints { get; set; } = [];
 
     public bool IsPrimaryKey => ColumnConstraints.Any(c => c.IsPrimaryKey);
