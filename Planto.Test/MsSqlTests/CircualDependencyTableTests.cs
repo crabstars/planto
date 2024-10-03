@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Planto.Test.MsSqlTests;
 
-public class CircualDependencyTableTest : IAsyncLifetime
+public class CircualDependencyTableTests : IAsyncLifetime
 {
     private const string TableName = "Employees";
     private const string RelationTableName = "Departments";

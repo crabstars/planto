@@ -15,6 +15,11 @@ internal class NpgSql : IDatabaseProviderHelper
         throw new NotImplementedException();
     }
 
+    public Task<DbDataReader> GetColumnChecks(string tableName)
+    {
+        throw new NotImplementedException();
+    }
+
     public Task<TCast> CreateEntity<TCast>(object? data, ExecutionNode? executionNode, PlantoOptions plantoOptions)
     {
         throw new NotImplementedException();

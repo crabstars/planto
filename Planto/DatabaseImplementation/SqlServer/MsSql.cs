@@ -67,6 +67,14 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler, string? optio
         return await command.ExecuteReaderAsync().ConfigureAwait(false);
     }
 
+    public async Task<DbDataReader> GetColumnChecks(string tableName)
+    {
+        var connection = await connectionHandler.GetOpenConnection();
+        await using var command = connection.CreateCommand();
+        command.CommandText = _queries.GetColumnChecksSql(tableName);
+        return await command.ExecuteReaderAsync().ConfigureAwait(false);
+    }
+
     public async Task<DbDataReader> GetColumInfos(string tableName)
     {
         var connection = await connectionHandler.GetOpenConnection();

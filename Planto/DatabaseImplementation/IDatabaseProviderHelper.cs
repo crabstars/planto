@@ -11,5 +11,7 @@ internal interface IDatabaseProviderHelper : IAsyncDisposable
 
     public Task<DbDataReader> GetColumnConstraints(string tableName);
 
+    public Task<DbDataReader> GetColumnChecks(string tableName);
+
     Task<TCast> CreateEntity<TCast>(object? data, ExecutionNode executionNode, PlantoOptions plantoOptions);
 }

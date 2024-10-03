@@ -8,7 +8,7 @@ using Xunit;
 
 namespace Planto.Test.MsSqlTests;
 
-public class CustomDataInsertTest : IAsyncLifetime
+public class CustomDataInsertTests : IAsyncLifetime
 {
     private const string TableName = "TestTable";
 

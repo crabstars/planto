@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Planto.Test.MsSqlTests;
 
-public class SchemaTest : IAsyncLifetime
+public class SchemaTests : IAsyncLifetime
 {
     private const string TableName = "TestTable";
     private const string FirstSchemaName = "firstSchema";

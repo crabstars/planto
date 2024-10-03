@@ -6,7 +6,6 @@ internal class ColumnInfo
 {
     [Column("column_name")] public string ColumnName { get; set; } = string.Empty;
 
-    // public string DataType { get; set; }
     [Column("data_type")] public Type? DataType { get; set; }
 
     [Column("character_maximum_length")] public int MaxCharLen { get; set; }
@@ -18,6 +17,8 @@ internal class ColumnInfo
     [Column("is_computed")] public bool IsComputed { get; set; }
 
     public List<ColumnConstraint> ColumnConstraints { get; set; } = [];
+
+    public List<ColumnCheck> ColumnChecks { get; set; } = [];
 
     public bool IsPrimaryKey => ColumnConstraints.Any(c => c.IsPrimaryKey);
 

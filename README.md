@@ -24,7 +24,7 @@ string TableName = "ExampleTable";
 var plantoRandomValues = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql, 
             options => options.SetValueGeneration(ValueGeneration.Random));
 
-// only creates entities with default values, see Attention part for more details
+// only creates entities with default values, see Restriction part for more details
 var plantoDefaultValues = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
 
 // if pk is not int, change e.g. to string or decimal
@@ -94,6 +94,7 @@ await planto.CreateEntity<int>(TableName, new TestTable { name = myName, age = a
 - improve multiple unique constraints for a table (mssql)
 - Logs
 - comment functions
+- refactor
 - DeSerialize
 - NpgSql
 - set values for indirect table entities

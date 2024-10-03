@@ -5,7 +5,7 @@ using Xunit;
 
 namespace Planto.Test.MsSqlTests;
 
-public class SimpleForeignKeyTableTest : IAsyncLifetime
+public class SimpleForeignKeyTableTests : IAsyncLifetime
 {
     private const string TableName = "table_with_foreign_key";
     private const string ReferenceTableName = "table1";

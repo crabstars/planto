@@ -8,7 +8,7 @@ using Xunit;
 
 namespace Planto.Test.MsSqlTests;
 
-public class AllDataTypesTableTest : IAsyncLifetime
+public class AllDataTypesTableTests : IAsyncLifetime
 {
     private const string TableName = "all_datatypes_table";
 

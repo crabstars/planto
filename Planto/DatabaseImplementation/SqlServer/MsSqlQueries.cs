@@ -71,6 +71,25 @@ internal class MsSqlQueries(string? optionsTableSchema)
                 """ + FilterSchema() + ";";
     }
 
+    public string GetColumnChecksSql(string tableName)
+    {
+        return $"""
+                SELECT 
+                    DISTINCT
+                    ccu.COLUMN_NAME AS column_name,
+                    cc.CONSTRAINT_NAME AS constraint_name,
+                    cc.CHECK_CLAUSE AS check_clause
+                FROM 
+                    INFORMATION_SCHEMA.CHECK_CONSTRAINTS cc
+                    INNER JOIN INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE ccu 
+                        ON cc.CONSTRAINT_NAME = ccu.CONSTRAINT_NAME
+                    INNER JOIN INFORMATION_SCHEMA.TABLES t 
+                        ON ccu.TABLE_NAME = t.TABLE_NAME
+                WHERE 
+                    t.TABLE_NAME = '{tableName}'
+                """ + FilterSchema() + ";";
+    }
+
     private string FilterSchema()
     {
         return !optionsTableSchema.IsNullOrEmpty() ? $" AND c.TABLE_SCHEMA = '{optionsTableSchema}'" : string.Empty;

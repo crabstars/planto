@@ -66,8 +66,8 @@ public class Planto : IAsyncDisposable
         var tableInfo = new TableInfo(tableName);
 
         var columInfos = (await GetColumInfos(tableName).ConfigureAwait(false)).ToList();
-
         await AddColumConstraints(columInfos, tableName).ConfigureAwait(false);
+        await AddColumnChecks(columInfos, tableName).ConfigureAwait(false);
         tableInfo.ColumnInfos.AddRange(columInfos);
 
         // Validate table
@@ -76,6 +76,39 @@ public class Planto : IAsyncDisposable
             throw new NotSupportedException("Only tables with single foreign key constraints are supported.");
         return tableInfo;
     }
+
+    private async Task AddColumnChecks(List<ColumnInfo> columnInfos, string tableName)
+    {
+        await using var dataReader = await _dbProviderHelper.GetColumnChecks(tableName);
+
+        while (await dataReader.ReadAsync().ConfigureAwait(false))
+        {
+            var columnCheck = new ColumnCheck();
+            var properties = typeof(ColumnCheck).GetProperties();
+
+            foreach (var property in properties)
+            {
+                var columnAttribute = property.GetCustomAttribute<ColumnAttribute>();
+                if (columnAttribute == null) continue;
+                var columnName = columnAttribute.Name ?? string.Empty;
+                try
+                {
+                    if (dataReader.IsDBNull(dataReader.GetOrdinal(columnName))) continue;
+                }
+                catch (Exception e)
+                {
+                    throw new PlantoDbException("Could not found column name: " + columnName, e);
+                }
+
+                var value = dataReader[columnName];
+                property.SetValue(columnCheck, Convert.ToString(value));
+            }
+
+            columnInfos.Single(c => c.ColumnName == columnCheck.ColumnName).ColumnChecks
+                .Add(columnCheck);
+        }
+    }
+
 
     private async Task AddColumConstraints(List<ColumnInfo> columnInfos, string tableName)
     {
