@@ -80,7 +80,9 @@ private class TestTableDb
 }
 ```
 
-Then you can just add a object to the function
+You can add one or more objects to the function, and the library will automatically use the corresponding object for
+the related table. This is useful if, for example, you want to create a random Customer that is linked to another
+table where the generated entity requires a specific value.
 
 ```csharp
 await planto.CreateEntity<int>(TableName, new TestTable { name = myName, age = age});
@@ -105,8 +107,7 @@ new Planto(ConnectionString, DbmsType.MsSql,
 
 ## TODOs
 
-- analyzer which tells the user which check clauses exists and that he should add values
-- change custom data to list
+- analyzer which tells the user which check clauses exists
 - cache columnInfo for tables
 - Support special PKs for MsSql, like multiple PKs
 - improve multiple unique constraints for a table (mssql)

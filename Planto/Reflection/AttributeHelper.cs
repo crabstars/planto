@@ -1,31 +1,33 @@
-using System.ComponentModel.DataAnnotations.Schema;
 using Planto.Attributes;
 
 namespace Planto.Reflection;
 
 internal static class AttributeHelper
 {
-    public static bool CustomDataMatchesCurrentTable(object? data, string tableName)
+    public static object? GetCustomDataMatchesCurrentTable(string tableName, params object?[] data)
     {
-        if (data is null) return false;
-
-        if (data.GetType().Name == tableName)
-            return true;
-
-        foreach (var customAttribute in Attribute.GetCustomAttributes(data.GetType()))
+        if (data.Length == 0) return null;
+        foreach (var o in data)
         {
-            if (customAttribute is TableNameAttribute ta)
+            if (o is null) continue;
+            if (o.GetType().Name == tableName)
+                return o;
+
+            foreach (var customAttribute in Attribute.GetCustomAttributes(o.GetType()))
             {
-                return tableName == ta.Name;
+                if (customAttribute is TableNameAttribute ta && ta.Name == tableName)
+                {
+                    return o;
+                }
             }
         }
 
-        return false;
+        return null;
     }
 
     public static object? GetValueToCustomData(object? data, string columnName)
     {
-        if (data is null) return false;
+        if (data is null) return null;
 
         var properties = data.GetType().GetProperties();
 
@@ -43,14 +45,6 @@ internal static class AttributeHelper
             }
         }
 
-        foreach (var customAttribute in Attribute.GetCustomAttributes(data.GetType()))
-        {
-            if (customAttribute is TableAttribute ta)
-            {
-                return columnName == ta.Name;
-            }
-        }
-
-        return false;
+        return null;
     }
 }

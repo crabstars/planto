@@ -1,5 +1,6 @@
 using System.Data.Common;
 using System.Text;
+using Planto.Column;
 using Planto.DatabaseConnectionHandler;
 using Planto.DatabaseImplementation.SqlServer.DataTypes;
 using Planto.OptionBuilder;
@@ -83,12 +84,13 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler, string? optio
         return await command.ExecuteReaderAsync().ConfigureAwait(false);
     }
 
-    public async Task<TCast> CreateEntity<TCast>(object? data, ExecutionNode executionNode, PlantoOptions plantoOptions)
+    public async Task<TCast> CreateEntity<TCast>(ExecutionNode executionNode, PlantoOptions plantoOptions,
+        params object?[] data)
     {
         try
         {
             await connectionHandler.StartTransaction();
-            var id = (TCast)await Insert(data, executionNode, plantoOptions.ValueGeneration);
+            var id = (TCast)await Insert(executionNode, plantoOptions.ValueGeneration, data);
             await connectionHandler.CommitTransaction();
             return id;
         }
@@ -104,25 +106,20 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler, string? optio
         await connectionHandler.DisposeAsync();
     }
 
-    private async Task<object> Insert(object? data, ExecutionNode executionNode, ValueGeneration valueGeneration)
+    private async Task<object> Insert(ExecutionNode executionNode, ValueGeneration valueGeneration,
+        params object?[] data)
     {
         var connection = await connectionHandler.GetOpenConnection();
+        var matchingUserData = AttributeHelper.GetCustomDataMatchesCurrentTable(executionNode.TableName, data);
+        object? pk = null;
+        var columns = GetColumnsForValueGeneration(executionNode);
 
-        var columns = executionNode.TableInfo.ColumnInfos
-            .Where(c => !c.IsComputed && (!c.IsIdentity.HasValue || !c.IsIdentity.Value)
-                                      && (!c.IsNullable || c.ColumnConstraints.Any(cc => cc.IsUnique)))
-            .ToList();
         var builder = new StringBuilder();
         builder.Append("Insert into ");
         if (optionsTableSchema is not null)
-        {
             builder.Append($"{optionsTableSchema}.");
-        }
-
         builder.Append($"{executionNode.TableName} ");
 
-        var matchesCurrentTable = AttributeHelper.CustomDataMatchesCurrentTable(data, executionNode.TableName);
-        object? pk = null;
         if (columns.All(c =>
                 c is { IsPrimaryKey: true, IsIdentity: not null } && c.IsIdentity.Value))
         {
@@ -140,25 +137,11 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler, string? optio
             {
                 if (c is { IsForeignKey: true, IsNullable: false })
                 {
-                    // We could probably just check for ForeignTableName, but right now it improves my sanity
-                    var foreignKey =
-                        await Insert(data, executionNode.Children.Single(child =>
-                            c.ColumnConstraints.Where(cc => cc.IsForeignKey)
-                                .Any(cc => cc.ForeignTableName == child.TableName
-                                           && child.TableInfo.ColumnInfos
-                                               .Any(ci => ci.ColumnName == cc.ForeignColumnName))
-                        ), valueGeneration);
-                    values.Add(foreignKey);
+                    values.Add(await GetForeignKey(executionNode, valueGeneration, data, c));
                 }
                 else
                 {
-                    var value = matchesCurrentTable
-                        ? SqlValueGeneration.MapValueForMsSql(AttributeHelper.GetValueToCustomData(data, c.ColumnName))
-                        : null;
-                    value ??= c.ColumnChecks.SelectMany(cc => cc.ParsedColumnCheck?.GetAllValues() ?? [])
-                        .FirstOrDefault(v => v is not null && (string)v != "NULL");
-                    value ??= SqlValueGeneration.CreateValueForMsSql(c.DataType, valueGeneration, c.MaxCharLen);
-
+                    var value = GetColumnValue(valueGeneration, matchingUserData, c);
                     values.Add(value);
                     if (c.IsPrimaryKey)
                         pk = value;
@@ -171,12 +154,56 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler, string? optio
 
         if (pk is null)
         {
-            builder.Append(executionNode.TableInfo.ColumnInfos.Any(c => c.DataType != typeof(int)
-                                                                        && c.IsPrimaryKey)
+            builder.Append(executionNode.TableInfo.ColumnInfos
+                .Any(c => c.DataType != typeof(int) && c.IsPrimaryKey)
                 ? LastIdDecimalSql
                 : LastIdIntSql);
         }
 
+        return await ExecuteInsert(executionNode, builder, connection, pk);
+    }
+
+    private static object? GetColumnValue(ValueGeneration valueGeneration, object? matchingUserData, ColumnInfo c)
+    {
+        var value = matchingUserData is not null
+            ? SqlValueGeneration.MapValueForMsSql(AttributeHelper.GetValueToCustomData(matchingUserData, c.ColumnName))
+            : null;
+        value ??= c.ColumnChecks.SelectMany(cc => cc.ParsedColumnCheck?.GetAllValues() ?? [])
+            .FirstOrDefault(v => v is not null && (string)v != "NULL");
+        if (value is null || (value as string == "NULL" && !c.IsNullable))
+        {
+            value = SqlValueGeneration.CreateValueForMsSql(c.DataType, valueGeneration, c.MaxCharLen);
+        }
+
+        return value;
+    }
+
+    private async Task<object> GetForeignKey(ExecutionNode executionNode, ValueGeneration valueGeneration,
+        object?[] data,
+        ColumnInfo c)
+    {
+        // We could probably just check for ForeignTableName, but right now it improves my sanity
+        var foreignKey =
+            await Insert(executionNode.Children.Single(child =>
+                c.ColumnConstraints.Where(cc => cc.IsForeignKey)
+                    .Any(cc => cc.ForeignTableName == child.TableName
+                               && child.TableInfo.ColumnInfos
+                                   .Any(ci => ci.ColumnName == cc.ForeignColumnName))
+            ), valueGeneration, data);
+        return foreignKey;
+    }
+
+    private static List<ColumnInfo> GetColumnsForValueGeneration(ExecutionNode executionNode)
+    {
+        return executionNode.TableInfo.ColumnInfos
+            .Where(c => !c.IsComputed && (!c.IsIdentity.HasValue || !c.IsIdentity.Value)
+                                      && (!c.IsNullable || c.ColumnConstraints.Any(cc => cc.IsUnique))).ToList();
+    }
+
+    private async Task<object> ExecuteInsert(ExecutionNode executionNode, StringBuilder builder,
+        DbConnection connection,
+        object? pk)
+    {
         var insertStatement = builder.ToString();
         executionNode.InsertStatement = insertStatement;
         await using var command = connection.CreateCommand();

@@ -49,12 +49,12 @@ public class Planto : IAsyncDisposable
     /// <param name="data">custom values for insert</param>
     /// <typeparam name="TCast">return type of the primary key</typeparam>
     /// <returns>PrimaryKey of the created entity</returns>
-    public async Task<TCast> CreateEntity<TCast>(string tableName, object? data = null)
+    public async Task<TCast> CreateEntity<TCast>(string tableName, params object?[] data)
     {
         try
         {
-            return await _dbProviderHelper.CreateEntity<TCast>(data, await CreateExecutionTree(tableName, null),
-                _options);
+            return await _dbProviderHelper.CreateEntity<TCast>(await CreateExecutionTree(tableName, null),
+                _options, data);
         }
         catch (Exception e)
         {

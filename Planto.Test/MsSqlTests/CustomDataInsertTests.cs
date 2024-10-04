@@ -21,6 +21,25 @@ public class CustomDataInsertTests : IAsyncLifetime
                                           ); 
                                          """;
 
+    private const string TableNameEmployee = "EmployeeTable";
+
+    private const string TwoConnectedTableSql = $"""
+                                                 CREATE TABLE CompanyTable (
+                                                     CompanyId INT IDENTITY(1,1) PRIMARY KEY,
+                                                     Name NVARCHAR(100) NOT NULL,
+                                                     EmployeeCount INT NOT NULL
+                                                 );
+
+                                                 CREATE TABLE {TableNameEmployee} (
+                                                     EmployeeId INT IDENTITY(1,1) PRIMARY KEY,
+                                                     Name NVARCHAR(100) NOT NULL,
+                                                     Age INT NOT NULL, 
+                                                     CompanyFk INT NOT NULL,
+                                                     CONSTRAINT FK_Employee_Company FOREIGN KEY (CompanyFk) 
+                                                         REFERENCES CompanyTable (CompanyId)
+                                                 );
+                                                 """;
+
     private readonly MsSqlContainer _msSqlContainer = new MsSqlBuilder()
         .WithImage(
             "mcr.microsoft.com/mssql/server:2022-latest"
@@ -30,8 +49,6 @@ public class CustomDataInsertTests : IAsyncLifetime
     public async Task InitializeAsync()
     {
         await _msSqlContainer.StartAsync();
-        var res = await _msSqlContainer.ExecScriptAsync(TestTableSql).ConfigureAwait(true);
-        res.Stderr.Should().BeEmpty();
     }
 
     public Task DisposeAsync()
@@ -43,6 +60,8 @@ public class CustomDataInsertTests : IAsyncLifetime
     public async Task CreateEntity_WithGivenDataAndClassWithAttributes_Matches()
     {
         // Arrange
+        var initRes = await _msSqlContainer.ExecScriptAsync(TestTableSql).ConfigureAwait(true);
+        initRes.Stderr.Should().BeEmpty();
         await using var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
 
         // Act
@@ -60,6 +79,8 @@ public class CustomDataInsertTests : IAsyncLifetime
     public async Task CreateEntity_WithGivenDataAndClassWithoutAttributes_Matches()
     {
         // Arrange
+        var initRes = await _msSqlContainer.ExecScriptAsync(TestTableSql).ConfigureAwait(true);
+        initRes.Stderr.Should().BeEmpty();
         await using var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
 
         // Act
@@ -77,6 +98,8 @@ public class CustomDataInsertTests : IAsyncLifetime
     public async Task CreateEntity_WithGivenDataAndClassWithoutAttributes_DoesNotMatch()
     {
         // Arrange
+        var initRes = await _msSqlContainer.ExecScriptAsync(TestTableSql).ConfigureAwait(true);
+        initRes.Stderr.Should().BeEmpty();
         await using var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
 
         // Act
@@ -88,6 +111,40 @@ public class CustomDataInsertTests : IAsyncLifetime
         // Assert
         res.Stderr.Should().BeEmpty();
         res.Stdout.Should().NotContain(myName).And.NotContain(age.ToString());
+    }
+
+    [Fact]
+    public async Task CreateEntity_WithGivenMultipleTables_Matches()
+    {
+        // Arrange
+        var initRes = await _msSqlContainer.ExecScriptAsync(TwoConnectedTableSql).ConfigureAwait(true);
+        initRes.Stderr.Should().BeEmpty();
+        await using var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
+
+        // Act
+        const int age = 19;
+        const int employeeCount = 123;
+        await planto.CreateEntity<int>(TableNameEmployee, new Company { EmployeeCount = employeeCount },
+            new Employee { Age = age });
+        var res = await _msSqlContainer
+            .ExecScriptAsync($"SELECT * FROM {TableNameEmployee} e JOIN CompanyTable c ON e.CompanyFk = c.CompanyId; ")
+            .ConfigureAwait(true);
+
+        // Assert
+        res.Stderr.Should().BeEmpty();
+        res.Stdout.Should().Contain(employeeCount.ToString()).And.Contain(age.ToString());
+    }
+
+    [TableName("EmployeeTable")]
+    private class Employee
+    {
+        [ColumnName("Age")] public int Age { get; set; }
+    }
+
+    [TableName("CompanyTable")]
+    private class Company
+    {
+        [ColumnName("EmployeeCount")] public int EmployeeCount { get; set; }
     }
 
     [TableName("TestTable")]
