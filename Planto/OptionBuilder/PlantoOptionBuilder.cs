@@ -15,7 +15,13 @@ public class PlantoOptionBuilder
         _options.MaxDegreeOfParallelism = maxDegreeOfParallelism;
         return this;
     }
-    
+
+    public PlantoOptionBuilder SetColumnCheckValueGenerator(bool useColumnCheckValueGenerator)
+    {
+        _options.ColumnCheckValueGenerator = useColumnCheckValueGenerator;
+        return this;
+    }
+
     /// <summary>
     /// If tableSchema is not specified (null or empty), INFORMATION_SCHEMA will include all schemas
     /// </summary>

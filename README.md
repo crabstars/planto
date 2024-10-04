@@ -38,27 +38,31 @@ var id = await plantoDefaultValues.CreateEntity<int>(TableName);
 
 ## Usage
 
-### MsSql (Sql Server)
+### Schema
 
-#### General
-- supports tables where id is managed by IDENTITY
-  - if a PK is not IDENTITY it is important to change SetValueGeneration to Random
-
+Set Schema if needed, else tables from all schemas are used
 ```csharp
-new Planto(ConnectionString, DbmsType.MsSql, 
-    options => options.SetValueGeneration(ValueGeneration.Random));
- ```
-
-- add `MultipleActiveResultSets=true;` to your ConnectionString or set `options.SetMaxDegreeOfParallelism(1)`
-
-- if needed to set the `schema` use the options, else tables from all schemas are used
-
-```csharp
-new Planto(ConnectionString, DbmsType.MsSql,
+new Planto(ConnectionString, DbmsType,
     options => options.SetDefaultSchema("myDbSchema"));
  ```
 
-#### Use custom data
+### Column Check Constraints
+
+Right now the program can solve simple expressions
+involving value comparisons using `=`, `<=`, `>=` and `like`<br>
+To deactivate Check-Constraint value generation(currently experimental) do:
+
+```csharp
+new Planto(ConnectionString, DbmsType,
+    options => options.SetColumnCheckValueGenerator(false));
+ ```
+
+**Recommended**<br>
+To find which columns need special values based on a `Check`, you can use `planto.AnalyzeColumnChecks(tableName)`
+which returns the Check-Constraints with matching table and column. Then you can use the custom data to set these
+values.
+
+### Custom data
 
 Create a class and use the `TableName` and `ColumnName` attribute to match the database naming with your class.
 If no attribute is provided the _class name_ and _property name_ is used.
@@ -82,12 +86,26 @@ Then you can just add a object to the function
 await planto.CreateEntity<int>(TableName, new TestTable { name = myName, age = age});
 ```
 
+### MsSql (Sql Server)
+
+#### General
+
+- supports tables where id is managed by IDENTITY
+  - if a PK is not IDENTITY it is important to change SetValueGeneration to Random
+
+```csharp
+new Planto(ConnectionString, DbmsType.MsSql, 
+    options => options.SetValueGeneration(ValueGeneration.Random));
+ ```
+
+- add `MultipleActiveResultSets=true;` to your ConnectionString or set `options.SetMaxDegreeOfParallelism(1)`
 ### Postgres (NpgSql)
 
 - Coming soon
 
 ## TODOs
-- handle simple check constraints
+
+- analyzer which tells the user which check clauses exists and that he should add values
 - change custom data to list
 - cache columnInfo for tables
 - Support special PKs for MsSql, like multiple PKs

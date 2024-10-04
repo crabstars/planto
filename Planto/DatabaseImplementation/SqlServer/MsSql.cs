@@ -154,7 +154,11 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler, string? optio
                 {
                     var value = matchesCurrentTable
                         ? SqlValueGeneration.MapValueForMsSql(AttributeHelper.GetValueToCustomData(data, c.ColumnName))
-                        : SqlValueGeneration.CreateValueForMsSql(c.DataType, valueGeneration, c.MaxCharLen);
+                        : null;
+                    value ??= c.ColumnChecks.SelectMany(cc => cc.ParsedColumnCheck?.GetAllValues() ?? [])
+                        .FirstOrDefault(v => v is not null && (string)v != "NULL");
+                    value ??= SqlValueGeneration.CreateValueForMsSql(c.DataType, valueGeneration, c.MaxCharLen);
+
                     values.Add(value);
                     if (c.IsPrimaryKey)
                         pk = value;

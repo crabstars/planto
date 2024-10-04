@@ -2,6 +2,7 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Planto.Column;
+using Planto.Column.ColumnCheckSolver;
 using Planto.DatabaseImplementation;
 using Planto.DatabaseImplementation.NpgSql;
 using Planto.DatabaseImplementation.SqlServer;
@@ -67,7 +68,8 @@ public class Planto : IAsyncDisposable
 
         var columInfos = (await GetColumInfos(tableName).ConfigureAwait(false)).ToList();
         await AddColumConstraints(columInfos, tableName).ConfigureAwait(false);
-        await AddColumnChecks(columInfos, tableName).ConfigureAwait(false);
+        if (_options.ColumnCheckValueGenerator)
+            await AddColumnChecks(columInfos, tableName).ConfigureAwait(false);
         tableInfo.ColumnInfos.AddRange(columInfos);
 
         // Validate table
@@ -80,6 +82,7 @@ public class Planto : IAsyncDisposable
     private async Task AddColumnChecks(List<ColumnInfo> columnInfos, string tableName)
     {
         await using var dataReader = await _dbProviderHelper.GetColumnChecks(tableName);
+        var columnCheckParser = new ColumnCheckSyntaxParser();
 
         while (await dataReader.ReadAsync().ConfigureAwait(false))
         {
@@ -104,6 +107,7 @@ public class Planto : IAsyncDisposable
                 property.SetValue(columnCheck, Convert.ToString(value));
             }
 
+            columnCheck.ParsedColumnCheck = columnCheckParser.Parse(columnCheck.CheckClause);
             columnInfos.Single(c => c.ColumnName == columnCheck.ColumnName).ColumnChecks
                 .Add(columnCheck);
         }
