@@ -35,7 +35,7 @@ internal class MsSqlQueries(string? optionsTableSchema)
                     AND sc.column_id = cc.column_id
                 WHERE
                     c.TABLE_NAME = '{tableName}'
-                """ + FilterSchema() + ";";
+                """ + FilterSchema("c") + ";";
     }
 
     public string GetColumnConstraintsSql(string tableName)
@@ -68,7 +68,7 @@ internal class MsSqlQueries(string? optionsTableSchema)
                     sys.foreign_key_columns fkc ON fk.object_id = fkc.constraint_object_id
                 WHERE 
                     c.TABLE_NAME = '{tableName}'
-                """ + FilterSchema() + ";";
+                """ + FilterSchema("c") + ";";
     }
 
     public string GetColumnChecksSql(string tableName)
@@ -87,11 +87,13 @@ internal class MsSqlQueries(string? optionsTableSchema)
                         ON ccu.TABLE_NAME = t.TABLE_NAME
                 WHERE 
                     t.TABLE_NAME = '{tableName}'
-                """ + FilterSchema() + ";";
+                """ + FilterSchema("t") + ";";
     }
 
-    private string FilterSchema()
+    private string FilterSchema(string tableName)
     {
-        return !optionsTableSchema.IsNullOrEmpty() ? $" AND c.TABLE_SCHEMA = '{optionsTableSchema}'" : string.Empty;
+        return !optionsTableSchema.IsNullOrEmpty()
+            ? $" AND {tableName}.TABLE_SCHEMA = '{optionsTableSchema}'"
+            : string.Empty;
     }
 }

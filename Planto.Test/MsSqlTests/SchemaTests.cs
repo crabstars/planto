@@ -13,8 +13,8 @@ public class SchemaTests : IAsyncLifetime
     private const string FirstSchemaName = "firstSchema";
     private const string SecondSchemaName = "secondSchema";
 
-    private const string CreateFirstSchema = $" CREATE SCHEMA {FirstSchemaName};";
-    private const string CreateSecondSchema = $" CREATE SCHEMA {SecondSchemaName}";
+    private const string CreateFirstSchema = $"CREATE SCHEMA {FirstSchemaName};";
+    private const string CreateSecondSchema = $"CREATE SCHEMA {SecondSchemaName}";
 
     private const string CreateTwoTables = $"""
                                              CREATE TABLE {FirstSchemaName}.{TableName} (
