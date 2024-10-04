@@ -116,4 +116,3 @@ new Planto(ConnectionString, DbmsType.MsSql,
 - refactor
 - DeSerialize
 - NpgSql
-- set values for indirect table entities

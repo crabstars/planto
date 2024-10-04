@@ -4,7 +4,6 @@ using System.Runtime.CompilerServices;
 using Planto.Column;
 using Planto.Column.ColumnCheckSolver;
 using Planto.DatabaseImplementation;
-using Planto.DatabaseImplementation.NpgSql;
 using Planto.DatabaseImplementation.SqlServer;
 using Planto.Exceptions;
 using Planto.OptionBuilder;
@@ -29,7 +28,6 @@ public class Planto : IAsyncDisposable
         _options = optionsBuilder.Build();
         _dbProviderHelper = dbmsType switch
         {
-            DbmsType.NpgSql => new NpgSql(),
             DbmsType.MsSql => new MsSql(connectionHandler, _options.TableSchema),
             _ => throw new ArgumentException(
                 "Only NpgsqlConnection and SqlConnection are supported right now.\nConnection Type: "
