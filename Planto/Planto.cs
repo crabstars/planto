@@ -60,6 +60,25 @@ public class Planto : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Can be used to determine which custom data should be provided
+    /// </summary>
+    /// <param name="tableName"></param>
+    /// <returns>Returns check clauses to all related tables which are needed to create an entry for the given table name</returns>
+    public async Task<IEnumerable<ColumnCheckClause>> AnalyzeColumnChecks(string tableName)
+    {
+        var executionTree = await CreateExecutionTree(tableName, null);
+        return GetColumnChecks(executionTree);
+    }
+
+    private IEnumerable<ColumnCheckClause> GetColumnChecks(ExecutionNode executionNode)
+    {
+        return executionNode.TableInfo.ColumnInfos.SelectMany(ci =>
+                ci.ColumnChecks.Select(cc =>
+                    new ColumnCheckClause(cc.CheckClause, cc.ColumnName, executionNode.TableName)))
+            .Concat(executionNode.Children.SelectMany(GetColumnChecks));
+    }
+
     internal async Task<TableInfo> GetTableInfo(string tableName)
     {
         var tableInfo = new TableInfo(tableName);

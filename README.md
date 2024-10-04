@@ -58,9 +58,9 @@ new Planto(ConnectionString, DbmsType,
  ```
 
 **Recommended**<br>
-To find which columns need special values based on a `Check`, you can use `planto.AnalyzeColumnChecks(tableName)`
-which returns the Check-Constraints with matching table and column. Then you can use the custom data to set these
-values.
+To identify which columns require special values based on a Check, you can use planto.AnalyzeColumnChecks(tableName).
+This function returns the check constraints for the specified table and its columns.
+From there, you can determine which data should likely be provided manually.
 
 ### Custom data
 
@@ -106,8 +106,6 @@ new Planto(ConnectionString, DbmsType.MsSql,
 - Coming soon
 
 ## TODOs
-
-- analyzer which tells the user which check clauses exists
 - cache columnInfo for tables
 - Support special PKs for MsSql, like multiple PKs
 - improve multiple unique constraints for a table (mssql)

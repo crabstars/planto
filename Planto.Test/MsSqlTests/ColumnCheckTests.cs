@@ -30,6 +30,22 @@ public class ColumnCheckTests : IAsyncLifetime
                                                           ); 
                                                          """;
 
+    private const string TwoTablesWithOneColumnCheck = $"""
+                                                        CREATE TABLE CompanyTable (
+                                                            CompanyId INT IDENTITY(1,1) PRIMARY KEY,
+                                                            Name NVARCHAR(100),
+                                                            EmployeeCount INT NOT NULL CHECK (EmployeeCount >= 0)
+                                                        );
+
+                                                        CREATE TABLE {TableName} (
+                                                            EmployeeId INT IDENTITY(1,1) PRIMARY KEY,
+                                                            Email NVARCHAR(100) CHECK (Email LIKE '%@%'),
+                                                            CompanyFk INT NOT NULL,
+                                                            CONSTRAINT FK_Employee_Company FOREIGN KEY (CompanyFk)
+                                                                REFERENCES CompanyTable (CompanyId)
+                                                        );
+                                                        """;
+
     private readonly MsSqlContainer _msSqlContainer = new MsSqlBuilder()
         .WithImage(
             "mcr.microsoft.com/mssql/server:2022-latest"
@@ -154,33 +170,32 @@ public class ColumnCheckTests : IAsyncLifetime
     }
 
     [Fact]
-    public void ColumnCheckExpression_GetAllValues()
+    public async Task AnalyzeColumnChecks_SingleTable()
     {
         // Arrange
-        var columnCheckExpression = new ColumnCheckExpression
-        {
-            Value = null,
-            Children =
-            [
-                new ColumnCheckExpression
-                {
-                    Value = 1,
-                    Children =
-                    [
-                        new ColumnCheckExpression()
-                        {
-                            Value = 3
-                        },
-                    ]
-                },
-                new ColumnCheckExpression()
-                {
-                    Value = 4
-                }
-            ]
-        };
+        var res = await _msSqlContainer.ExecScriptAsync(TableWithSimpleColumnChecks).ConfigureAwait(true);
+        res.Stderr.Should().BeEmpty();
+        await using var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
 
-        // Act && Assert
-        columnCheckExpression.GetAllValues().Should().BeEquivalentTo(new List<object?> { null, 1, 3, 4 });
+        // Act
+        var columnChecks = (await planto.AnalyzeColumnChecks(TableName)).ToList();
+
+        // Assert
+        columnChecks.Count.Should().Be(4);
+    }
+
+    [Fact]
+    public async Task AnalyzeColumnChecks_TwoTables()
+    {
+        // Arrange
+        var res = await _msSqlContainer.ExecScriptAsync(TwoTablesWithOneColumnCheck).ConfigureAwait(true);
+        res.Stderr.Should().BeEmpty();
+        await using var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
+
+        // Act
+        var columnChecks = (await planto.AnalyzeColumnChecks(TableName)).ToList();
+
+        // Assert
+        columnChecks.Count.Should().Be(2);
     }
 }
