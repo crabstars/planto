@@ -6,7 +6,7 @@ Currently only supporting Sql Server(MsSql)
 ## NuGet
 
 https://www.nuget.org/packages/Planto or<br>
-`dotnet add package Planto --version 0.5.1`
+`dotnet add package Planto --version 0.6.0`
 
 ## What
 

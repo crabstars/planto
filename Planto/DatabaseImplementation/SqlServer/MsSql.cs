@@ -196,8 +196,9 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler, string? optio
     private static List<ColumnInfo> GetColumnsForValueGeneration(ExecutionNode executionNode)
     {
         return executionNode.TableInfo.ColumnInfos
-            .Where(c => !c.IsComputed && (!c.IsIdentity.HasValue || !c.IsIdentity.Value)
-                                      && (!c.IsNullable || c.ColumnConstraints.Any(cc => cc.IsUnique))).ToList();
+            .Where(c => (!c.IsComputed && (!c.IsIdentity.HasValue || !c.IsIdentity.Value)
+                                       && (!c.IsNullable || c.ColumnConstraints.Any(cc => cc.IsUnique)))
+                        || c.ColumnChecks.Count != 0).ToList();
     }
 
     private async Task<object> ExecuteInsert(ExecutionNode executionNode, StringBuilder builder,

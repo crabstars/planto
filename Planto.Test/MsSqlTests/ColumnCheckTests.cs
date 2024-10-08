@@ -46,6 +46,16 @@ public class ColumnCheckTests : IAsyncLifetime
                                                         );
                                                         """;
 
+    private const string TableWithOneComplexCheck = $"""
+                                                     CREATE TABLE {TableName} (
+                                                          id INT IDENTITY(1,1) PRIMARY KEY,
+                                                          CustomerId INT,
+                                                          OrderInfo INT,
+                                                          Check (OrderInfo = 1 And CustomerId IS NOT NULL OR OrderInfo = 0)
+                                                      ); 
+                                                     """;
+
+
     private readonly MsSqlContainer _msSqlContainer = new MsSqlBuilder()
         .WithImage(
             "mcr.microsoft.com/mssql/server:2022-latest"
@@ -197,5 +207,20 @@ public class ColumnCheckTests : IAsyncLifetime
 
         // Assert
         columnChecks.Count.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task GenerateEntryFor_TableWithOneComplexCheck()
+    {
+        // Arrange
+        var res = await _msSqlContainer.ExecScriptAsync(TableWithOneComplexCheck).ConfigureAwait(true);
+        res.Stderr.Should().BeEmpty();
+        await using var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
+
+        // Act
+        var id = await planto.CreateEntity<int>(TableName);
+
+        // Assert
+        id.Should().Be(1);
     }
 }
