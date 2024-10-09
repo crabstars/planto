@@ -27,7 +27,7 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler, string? optio
             { "float", typeof(double) },
             { "real", typeof(float) },
             { "money", typeof(decimal) },
-            { "smallmoney", typeof(decimal) },
+            { "smallmoney", typeof(short) },
             { "char", typeof(string) },
             { "varchar", typeof(string) },
             { "text", typeof(string) },
@@ -112,7 +112,7 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler, string? optio
         var connection = await connectionHandler.GetOpenConnection();
         var matchingUserData = AttributeHelper.GetCustomDataMatchesCurrentTable(executionNode.TableName, data);
         object? pk = null;
-        var columns = GetColumnsForValueGeneration(executionNode);
+        var columns = GetColumnsForValueGeneration(executionNode, matchingUserData);
 
         var builder = new StringBuilder();
         builder.Append("Insert into ");
@@ -193,11 +193,13 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler, string? optio
         return foreignKey;
     }
 
-    private static List<ColumnInfo> GetColumnsForValueGeneration(ExecutionNode executionNode)
+    private static List<ColumnInfo> GetColumnsForValueGeneration(ExecutionNode executionNode, object? matchingUserData)
     {
+        // TODO improve, bec now we are calling AttributeHelper.GetValueToCustomData on two different points, instead of saving and reusing value
         return executionNode.TableInfo.ColumnInfos
-            .Where(c => (!c.IsComputed && (!c.IsIdentity.HasValue || !c.IsIdentity.Value)
-                                       && (!c.IsNullable || c.ColumnConstraints.Any(cc => cc.IsUnique)))
+            .Where(c => AttributeHelper.GetValueToCustomData(matchingUserData, c.ColumnName) is not null
+                        || (!c.IsComputed && (!c.IsIdentity.HasValue || !c.IsIdentity.Value)
+                            && (!c.IsNullable || c.ColumnConstraints.Any(cc => cc.IsUnique)))
                         || c.ColumnChecks.Count != 0).ToList();
     }
 

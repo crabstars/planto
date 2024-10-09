@@ -13,40 +13,47 @@ internal static class SqlValueGeneration
             ? string.Empty
             : $"{Guid.NewGuid().ToString().Truncate(length)}";
     }
-
-    private static int CreateInt(ValueGeneration valueGeneration)
+    
+    private static object CreateShort(ValueGeneration valueGeneration)
     {
         return valueGeneration == ValueGeneration.Default
             ? default
             : Convert.ToInt32(new Random().NextDouble() * 100);
     }
 
+    private static int CreateInt(ValueGeneration valueGeneration)
+    {
+        return valueGeneration == ValueGeneration.Default
+            ? default
+            : Convert.ToInt32(new Random().NextDouble() * 1000000);
+    }
+
     private static long CreateLong(ValueGeneration valueGeneration)
     {
         return valueGeneration == ValueGeneration.Default
             ? default
-            : (long)(new Random().NextDouble() * 10000);
+            : (long)(new Random().NextDouble() * 1000000);
     }
 
     private static double CreateDouble(ValueGeneration valueGeneration)
     {
         return valueGeneration == ValueGeneration.Default
             ? default
-            : new Random().NextDouble() * 1000;
+            : new Random().NextDouble() * 1000000;
     }
 
     private static decimal CreateDecimal(ValueGeneration valueGeneration)
     {
         return valueGeneration == ValueGeneration.Default
             ? default
-            : Convert.ToDecimal(new Random().NextDouble() * 1000);
+            : Convert.ToDecimal(new Random().NextDouble() * 1000000);
     }
 
     private static float CreateFloat(ValueGeneration valueGeneration)
     {
         return valueGeneration == ValueGeneration.Default
             ? default
-            : (float)(new Random().NextDouble() * 1000);
+            : (float)(new Random().NextDouble() * 1000000);
     }
 
     private static bool CreateBool(ValueGeneration valueGeneration)
@@ -85,6 +92,7 @@ internal static class SqlValueGeneration
     public static object? CreateValueForMsSql(Type? type, ValueGeneration valueGeneration, int size) => type switch
     {
         _ when type == typeof(string) => $"'{CreateString(valueGeneration, size)}'",
+        _ when type == typeof(short) => CreateShort(valueGeneration),
         _ when type == typeof(int) => CreateInt(valueGeneration),
         _ when type == typeof(long) => CreateLong(valueGeneration),
         _ when type == typeof(float) => CreateFloat(valueGeneration).ToString(CultureInfo.InvariantCulture),

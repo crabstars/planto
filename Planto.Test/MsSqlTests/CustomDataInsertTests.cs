@@ -20,6 +20,13 @@ public class CustomDataInsertTests : IAsyncLifetime
                                               age int NOT NULL,
                                           ); 
                                          """;
+    private const string TestTableWithOnlyNullableFieldsSql = $"""
+                                          CREATE TABLE {TableName} (
+                                              id INT IDENTITY PRIMARY KEY,
+                                              name varchar(100),
+                                              age int,
+                                          ); 
+                                         """;
 
     private const string TableNameEmployee = "EmployeeTable";
 
@@ -75,11 +82,13 @@ public class CustomDataInsertTests : IAsyncLifetime
         res.Stdout.Should().Contain(myName).And.Contain(age.ToString());
     }
 
-    [Fact]
-    public async Task CreateEntity_WithGivenDataAndClassWithoutAttributes_Matches()
+    [Theory]
+    [InlineData(TestTableSql)]
+    [InlineData(TestTableWithOnlyNullableFieldsSql)]
+    public async Task CreateEntity_WithGivenDataAndClassWithoutAttributes_Matches(string tableSql)
     {
         // Arrange
-        var initRes = await _msSqlContainer.ExecScriptAsync(TestTableSql).ConfigureAwait(true);
+        var initRes = await _msSqlContainer.ExecScriptAsync(tableSql).ConfigureAwait(true);
         initRes.Stderr.Should().BeEmpty();
         await using var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
 
@@ -133,6 +142,25 @@ public class CustomDataInsertTests : IAsyncLifetime
         // Assert
         res.Stderr.Should().BeEmpty();
         res.Stdout.Should().Contain(employeeCount.ToString()).And.Contain(age.ToString());
+    }
+    
+    [Fact]
+    public async Task CreateEntity_ForTestTableWithOnlyNullableFieldsSql_InsertCorrectData()
+    {
+        // Arrange
+        var initRes = await _msSqlContainer.ExecScriptAsync(TestTableWithOnlyNullableFieldsSql).ConfigureAwait(true);
+        initRes.Stderr.Should().BeEmpty();
+        await using var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
+
+        // Act
+        const string myName = "TestName";
+        const int age = 19;
+        await planto.CreateEntity<int>(TableName, new TestTable { name = myName, age = age });
+        var res = await _msSqlContainer.ExecScriptAsync($"Select * FROM {TableName}").ConfigureAwait(true);
+
+        // Assert
+        res.Stderr.Should().BeEmpty();
+        res.Stdout.Should().Contain(myName).And.Contain(age.ToString());
     }
 
     [TableName("EmployeeTable")]
