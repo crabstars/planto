@@ -170,7 +170,7 @@ public class AllDataTypesTableTests : IAsyncLifetime
         },
         new()
         {
-            DataType = typeof(decimal),
+            DataType = typeof(short),
             ColumnName = "smallmoney_column",
             IsNullable = false,
             IsIdentity = false,
