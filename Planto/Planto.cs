@@ -17,6 +17,10 @@ namespace Planto;
 /// </summary>
 public class Planto : IAsyncDisposable
 {
+    private const string ForeignKey = "FOREIGN KEY";
+    private const string PrimaryKey = "PRIMARY KEY";
+    private const string Unique = "UNIQUE";
+    private const string Check = "CHECK";
     private readonly IDatabaseProviderHelper _dbProviderHelper;
     private readonly PlantoOptions _options;
 
@@ -163,16 +167,16 @@ public class Planto : IAsyncDisposable
                 {
                     switch (value)
                     {
-                        case "FOREIGN KEY":
+                        case ForeignKey:
                             property.SetValue(columnConstraint, ConstraintType.ForeignKey);
                             break;
-                        case "PRIMARY KEY":
+                        case PrimaryKey:
                             property.SetValue(columnConstraint, ConstraintType.PrimaryKey);
                             break;
-                        case "UNIQUE":
+                        case Unique:
                             property.SetValue(columnConstraint, ConstraintType.Unique);
                             break;
-                        case "CHECK":
+                        case Check:
                             property.SetValue(columnConstraint, ConstraintType.Check);
                             Console.WriteLine("Warning: CHECK constraints are not yet supported");
                             break;

@@ -12,54 +12,55 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler, string? optio
 {
     private const string LastIdIntSql = "SELECT CAST(SCOPE_IDENTITY() AS INT) AS GeneratedID;";
     private const string LastIdDecimalSql = "SELECT SCOPE_IDENTITY() AS GeneratedID;";
+    private const string SqlNull = "NULL";
     private readonly MsSqlQueries _queries = new(optionsTableSchema);
-
+    private static readonly Dictionary<string, Type> SqlToTypeMap = new()
+    {
+        { "int", typeof(int) },
+        { "tinyint", typeof(byte) },
+        { "smallint", typeof(short) },
+        { "bigint", typeof(long) },
+        { "decimal", typeof(decimal) },
+        { "numeric", typeof(decimal) },
+        { "float", typeof(double) },
+        { "real", typeof(float) },
+        { "money", typeof(decimal) },
+        { "smallmoney", typeof(short) },
+        { "char", typeof(string) },
+        { "varchar", typeof(string) },
+        { "text", typeof(string) },
+        { "nchar", typeof(string) },
+        { "nvarchar", typeof(string) },
+        { "ntext", typeof(string) },
+        { "date", typeof(DateTime) },
+        { "datetime", typeof(DateTime) },
+        { "datetime2", typeof(DateTime) },
+        { "smalldatetime", typeof(DateTime) },
+        { "time", typeof(TimeSpan) },
+        { "datetimeoffset", typeof(DateTimeOffset) },
+        { "binary", typeof(byte[]) },
+        { "varbinary", typeof(byte[]) },
+        { "image", typeof(byte[]) },
+        { "bit", typeof(bool) },
+        { "uniqueidentifier", typeof(Guid) },
+        { "xml", typeof(string) },
+        { "json", typeof(string) },
+        { "hierarchyid", typeof(HierarchyId) },
+        { "geography", typeof(Geography) },
+        { "geometry", typeof(Geometry) }
+    };
+    
+    /// <inheritdoc />
     public Type MapToSystemType(string sqlType)
     {
-        var sqlToCSharpMap = new Dictionary<string, Type>
-        {
-            { "int", typeof(int) },
-            { "tinyint", typeof(byte) },
-            { "smallint", typeof(short) },
-            { "bigint", typeof(long) },
-            { "decimal", typeof(decimal) },
-            { "numeric", typeof(decimal) },
-            { "float", typeof(double) },
-            { "real", typeof(float) },
-            { "money", typeof(decimal) },
-            { "smallmoney", typeof(short) },
-            { "char", typeof(string) },
-            { "varchar", typeof(string) },
-            { "text", typeof(string) },
-            { "nchar", typeof(string) },
-            { "nvarchar", typeof(string) },
-            { "ntext", typeof(string) },
-            { "date", typeof(DateTime) },
-            { "datetime", typeof(DateTime) },
-            { "datetime2", typeof(DateTime) },
-            { "smalldatetime", typeof(DateTime) },
-            { "time", typeof(TimeSpan) },
-            { "datetimeoffset", typeof(DateTimeOffset) },
-            { "binary", typeof(byte[]) },
-            { "varbinary", typeof(byte[]) },
-            { "image", typeof(byte[]) },
-            { "bit", typeof(bool) },
-            { "uniqueidentifier", typeof(Guid) },
-            { "xml", typeof(string) },
-            { "json", typeof(string) },
-            { "hierarchyid", typeof(HierarchyId) },
-            { "geography", typeof(Geography) },
-            { "geometry", typeof(Geometry) }
-        };
+        SqlToTypeMap.TryGetValue(sqlType.ToLower(), out var result);
 
-        if (sqlToCSharpMap.ContainsKey(sqlType.ToLower()))
-        {
-            return sqlToCSharpMap[sqlType.ToLower()];
-        }
-
+        if (result is not null)
+            return result;
         throw new ArgumentException($"SQL Type '{sqlType}' not recognized.");
     }
-
+  
+    /// <inheritdoc />
     public async Task<DbDataReader> GetColumnConstraints(string tableName)
     {
         var connection = await connectionHandler.GetOpenConnection();
@@ -68,6 +69,7 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler, string? optio
         return await command.ExecuteReaderAsync().ConfigureAwait(false);
     }
 
+    /// <inheritdoc />
     public async Task<DbDataReader> GetColumnChecks(string tableName)
     {
         var connection = await connectionHandler.GetOpenConnection();
@@ -76,6 +78,7 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler, string? optio
         return await command.ExecuteReaderAsync().ConfigureAwait(false);
     }
 
+    /// <inheritdoc />
     public async Task<DbDataReader> GetColumInfos(string tableName)
     {
         var connection = await connectionHandler.GetOpenConnection();
@@ -84,6 +87,7 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler, string? optio
         return await command.ExecuteReaderAsync().ConfigureAwait(false);
     }
 
+    /// <inheritdoc />
     public async Task<TCast> CreateEntity<TCast>(ExecutionNode executionNode, PlantoOptions plantoOptions,
         params object?[] data)
     {
@@ -106,6 +110,13 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler, string? optio
         await connectionHandler.DisposeAsync();
     }
 
+    /// <summary>
+    /// Creates the necessary foreign key entities and main entry
+    /// </summary>
+    /// <param name="executionNode"></param>
+    /// <param name="valueGeneration"></param>
+    /// <param name="data"></param>
+    /// <returns>Id</returns>
     private async Task<object> Insert(ExecutionNode executionNode, ValueGeneration valueGeneration,
         params object?[] data)
     {
@@ -160,7 +171,7 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler, string? optio
                 : LastIdIntSql);
         }
 
-        return await ExecuteInsert(executionNode, builder, connection, pk);
+        return await ExecuteInsert(executionNode, builder.ToString(), connection, pk);
     }
 
     private static object? GetColumnValue(ValueGeneration valueGeneration, object? matchingUserData, ColumnInfo c)
@@ -169,8 +180,8 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler, string? optio
             ? SqlValueGeneration.MapValueForMsSql(AttributeHelper.GetValueToCustomData(matchingUserData, c.ColumnName))
             : null;
         value ??= c.ColumnChecks.SelectMany(cc => cc.ParsedColumnCheck?.GetAllValues() ?? [])
-            .FirstOrDefault(v => v is not null && (string)v != "NULL");
-        if (value is null || (value as string == "NULL" && !c.IsNullable))
+            .FirstOrDefault(v => v is not null && (string)v != SqlNull);
+        if (value is null || (value as string == SqlNull && !c.IsNullable))
         {
             value = SqlValueGeneration.CreateValueForMsSql(c.DataType, valueGeneration, c.MaxCharLen);
         }
@@ -203,11 +214,10 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler, string? optio
                         || c.ColumnChecks.Count != 0).ToList();
     }
 
-    private async Task<object> ExecuteInsert(ExecutionNode executionNode, StringBuilder builder,
+    private async Task<object> ExecuteInsert(ExecutionNode executionNode, string insertStatement,
         DbConnection connection,
         object? pk)
     {
-        var insertStatement = builder.ToString();
         executionNode.InsertStatement = insertStatement;
         await using var command = connection.CreateCommand();
         command.Transaction = connectionHandler.GetDbTransaction();

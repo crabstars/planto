@@ -4,7 +4,7 @@ namespace Planto.DatabaseImplementation.SqlServer;
 
 internal class MsSqlQueries(string? optionsTableSchema)
 {
-    public string GetColumnInfoSql(string tableName)
+    internal string GetColumnInfoSql(string tableName)
     {
         return $"""
                 SELECT
@@ -38,7 +38,7 @@ internal class MsSqlQueries(string? optionsTableSchema)
                 """ + FilterSchema("c") + ";";
     }
 
-    public string GetColumnConstraintsSql(string tableName)
+    internal string GetColumnConstraintsSql(string tableName)
     {
         return $"""
                 SELECT
@@ -71,7 +71,7 @@ internal class MsSqlQueries(string? optionsTableSchema)
                 """ + FilterSchema("c") + ";";
     }
 
-    public string GetColumnChecksSql(string tableName)
+    internal string GetColumnChecksSql(string tableName)
     {
         return $"""
                 SELECT 
