@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Planto.Column;
+using Planto.Table;
 
 namespace Planto;
 

@@ -1,4 +1,4 @@
-namespace Planto;
+namespace Planto.Column;
 
 public class ColumnCheckClause(string checkClause, string columnName, string tableName)
 {

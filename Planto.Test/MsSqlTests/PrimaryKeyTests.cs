@@ -43,7 +43,7 @@ public class PrimaryKeyTests : IAsyncLifetime
         await using var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
 
         // Act
-        var tableInfo = await planto.GetTableInfo(TableName);
+        var tableInfo = await planto.CreateTableInfo(TableName);
 
         // Assert
         tableInfo.ColumnInfos.Should().BeEquivalentTo(new List<ColumnInfo>()

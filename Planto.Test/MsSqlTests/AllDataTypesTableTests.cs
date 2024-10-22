@@ -412,7 +412,7 @@ public class AllDataTypesTableTests : IAsyncLifetime
             new Planto(_msSqlContainer.GetConnectionStringWithMultipleActiveResultSet(), DbmsType.MsSql);
 
         // Act
-        var res = await planto.GetTableInfo(TableName);
+        var res = await planto.CreateTableInfo(TableName);
 
         // Assert
         res.ColumnInfos.Should().HaveCount(_columnInfos.Count);

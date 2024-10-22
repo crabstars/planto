@@ -81,7 +81,7 @@ public class ColumnCheckTests : IAsyncLifetime
         await using var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
 
         // Act
-        var tableInfo = await planto.GetTableInfo(TableName);
+        var tableInfo = await planto.CreateTableInfo(TableName);
         var columnCheckTreeCreator = new ColumnCheckSyntaxParser();
         var treeAgeCheckConstraint = columnCheckTreeCreator.Parse(tableInfo.ColumnInfos[1].ColumnChecks[0].CheckClause);
         var treeStartAndEndDateCheckConstraint =
@@ -127,7 +127,7 @@ public class ColumnCheckTests : IAsyncLifetime
         await using var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
 
         // Act
-        var tableInfo = await planto.GetTableInfo(TableName);
+        var tableInfo = await planto.CreateTableInfo(TableName);
         var columnCheckTreeCreator = new ColumnCheckSyntaxParser();
         var bonusAndSalaryCheck = columnCheckTreeCreator.Parse(tableInfo.ColumnInfos[1].ColumnChecks[0].CheckClause);
 
@@ -154,7 +154,7 @@ public class ColumnCheckTests : IAsyncLifetime
         await using var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
 
         // Act
-        var tableInfo = await planto.GetTableInfo(TableName);
+        var tableInfo = await planto.CreateTableInfo(TableName);
         var columnCheckTreeCreator = new ColumnCheckSyntaxParser();
         var emailCheck = columnCheckTreeCreator.Parse(tableInfo.ColumnInfos[3].ColumnChecks[0].CheckClause);
 

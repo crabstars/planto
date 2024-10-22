@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Planto.DatabaseImplementation;
+using Planto.ExecutionTree;
 using Planto.Test.Helper;
 using Testcontainers.MsSql;
 using Xunit;
@@ -75,9 +76,11 @@ public class MultiLevelForeignKeyTableTests : IAsyncLifetime
         // Arrange
         await using var planto =
             new Planto(_msSqlContainer.GetConnectionStringWithMultipleActiveResultSet(), DbmsType.MsSql);
+        var executionTreeBuilder = new ExecutionTreeBuilder(planto, null);
+
 
         // Act
-        var tableA = await planto.CreateExecutionTree(TableName, null);
+        var tableA = await executionTreeBuilder.CreateExecutionTree(TableName, null);
 
         // Assert
         tableA.Children.Count.Should().Be(1);

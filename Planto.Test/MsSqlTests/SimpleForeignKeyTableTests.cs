@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Planto.Column;
 using Planto.DatabaseImplementation;
+using Planto.ExecutionTree;
 using Testcontainers.MsSql;
 using Xunit;
 
@@ -95,7 +96,7 @@ public class SimpleForeignKeyTableTests : IAsyncLifetime
         await using var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
 
         // Act
-        var res = await planto.GetTableInfo(TableName);
+        var res = await planto.CreateTableInfo(TableName);
 
         // Assert
         res.ColumnInfos.Should().HaveCount(_columnInfos.Count);
@@ -113,9 +114,10 @@ public class SimpleForeignKeyTableTests : IAsyncLifetime
     {
         // Arrange
         await using var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
+        var executionTreeBuilder = new ExecutionTreeBuilder(planto, null);
 
         // Act
-        var resExecutionNode = await planto.CreateExecutionTree(TableName, null);
+        var resExecutionNode = await executionTreeBuilder.CreateExecutionTree(TableName, null);
 
         // Assert
         resExecutionNode.Children.Count.Should().Be(1);

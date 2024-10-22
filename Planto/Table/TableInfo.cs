@@ -1,4 +1,6 @@
-namespace Planto.Column;
+using Planto.Column;
+
+namespace Planto.Table;
 
 internal class TableInfo(string tableName)
 {
