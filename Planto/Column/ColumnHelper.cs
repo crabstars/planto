@@ -16,7 +16,7 @@ internal class ColumnHelper
     private const string Unique = "UNIQUE";
     private const string Check = "CHECK";
 
-    private readonly IDictionary<string, IEnumerable<ColumnInfo>>? _cachedColumns;
+    internal readonly IDictionary<string, IEnumerable<ColumnInfo>>? CachedColumns;
     private readonly IDatabaseProviderHelper _dbProviderHelper;
 
     /// <summary>
@@ -27,7 +27,7 @@ internal class ColumnHelper
     internal ColumnHelper(IDatabaseProviderHelper dbProviderHelper, bool optionsCacheColumns)
     {
         if (optionsCacheColumns)
-            _cachedColumns = new Dictionary<string, IEnumerable<ColumnInfo>>();
+            CachedColumns = new Dictionary<string, IEnumerable<ColumnInfo>>();
         _dbProviderHelper = dbProviderHelper;
     }
 
@@ -142,8 +142,8 @@ internal class ColumnHelper
 
     internal async Task<IEnumerable<ColumnInfo>> GetColumInfos(string tableName)
     {
-        if (_cachedColumns != null &&
-            _cachedColumns.TryGetValue(tableName, out var cachedColumns))
+        if (CachedColumns != null &&
+            CachedColumns.TryGetValue(tableName, out var cachedColumns))
             return cachedColumns;
 
         var columnInfos = new List<ColumnInfo>();
@@ -194,7 +194,7 @@ internal class ColumnHelper
             columnInfos.Add(columnInfo);
         }
 
-        _cachedColumns?.Add(tableName, columnInfos);
+        CachedColumns?.Add(tableName, columnInfos);
 
         return columnInfos;
     }
