@@ -73,11 +73,11 @@ public class MultiLevelForeignKeyTableTests : IAsyncLifetime
     public async Task CreateExecutionTree_ForMultiLevelFkTables()
     {
         // Arrange
-        await using var planto =
-            new Planto(_msSqlContainer.GetConnectionStringWithMultipleActiveResultSet(), DbmsType.MsSql);
+        var executionTreeBuilder =
+            ExecutionTreeBuilderFactory.Create(_msSqlContainer.GetConnectionStringWithMultipleActiveResultSet());
 
         // Act
-        var tableA = await planto.CreateExecutionTree(TableName, null);
+        var tableA = await executionTreeBuilder.CreateExecutionTree(TableName, null);
 
         // Assert
         tableA.Children.Count.Should().Be(1);

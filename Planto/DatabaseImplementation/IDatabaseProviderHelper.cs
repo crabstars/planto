@@ -1,11 +1,11 @@
 using System.Data.Common;
+using Planto.ExecutionTree;
 using Planto.OptionBuilder;
 
 namespace Planto.DatabaseImplementation;
 
 internal interface IDatabaseProviderHelper : IAsyncDisposable
 {
-    
     /// <summary>
     /// returns the matching C# type to a sql type
     /// </summary>
@@ -20,7 +20,7 @@ internal interface IDatabaseProviderHelper : IAsyncDisposable
     /// <param name="tableName"></param>
     /// <returns>DbDataReader</returns>
     Task<DbDataReader> GetColumInfos(string tableName);
-      
+
     /// <summary>
     /// Uses INFORMATION_SCHEMA to get the column constraints for a table
     /// </summary>

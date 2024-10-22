@@ -40,10 +40,11 @@ public class PrimaryKeyTests : IAsyncLifetime
     public async Task ColumnInfoFor_TableWithVarcharPk()
     {
         // Arrange
-        await using var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
+        var executionTreeBuilder =
+            ExecutionTreeBuilderFactory.Create(_msSqlContainer.GetConnectionStringWithMultipleActiveResultSet());
 
         // Act
-        var tableInfo = await planto.GetTableInfo(TableName);
+        var tableInfo = await executionTreeBuilder.CreateTableInfo(TableName);
 
         // Assert
         tableInfo.ColumnInfos.Should().BeEquivalentTo(new List<ColumnInfo>()

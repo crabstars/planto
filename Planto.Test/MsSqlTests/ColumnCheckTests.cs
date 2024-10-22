@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Planto.Column.ColumnCheckSolver;
 using Planto.DatabaseImplementation;
+using Planto.Test.Helper;
 using Testcontainers.MsSql;
 using Xunit;
 
@@ -78,10 +79,11 @@ public class ColumnCheckTests : IAsyncLifetime
         // Arrange
         var res = await _msSqlContainer.ExecScriptAsync(TableWithSimpleColumnChecks).ConfigureAwait(true);
         res.Stderr.Should().BeEmpty();
-        await using var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
+        var executionTreeBuilder =
+            ExecutionTreeBuilderFactory.Create(_msSqlContainer.GetConnectionStringWithMultipleActiveResultSet(), true);
 
         // Act
-        var tableInfo = await planto.GetTableInfo(TableName);
+        var tableInfo = await executionTreeBuilder.CreateTableInfo(TableName);
         var columnCheckTreeCreator = new ColumnCheckSyntaxParser();
         var treeAgeCheckConstraint = columnCheckTreeCreator.Parse(tableInfo.ColumnInfos[1].ColumnChecks[0].CheckClause);
         var treeStartAndEndDateCheckConstraint =
@@ -124,10 +126,11 @@ public class ColumnCheckTests : IAsyncLifetime
         // Arrange
         var res = await _msSqlContainer.ExecScriptAsync(TableWithComplexColumnChecks).ConfigureAwait(true);
         res.Stderr.Should().BeEmpty();
-        await using var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
+        var executionTreeBuilder =
+            ExecutionTreeBuilderFactory.Create(_msSqlContainer.GetConnectionStringWithMultipleActiveResultSet(), true);
 
         // Act
-        var tableInfo = await planto.GetTableInfo(TableName);
+        var tableInfo = await executionTreeBuilder.CreateTableInfo(TableName);
         var columnCheckTreeCreator = new ColumnCheckSyntaxParser();
         var bonusAndSalaryCheck = columnCheckTreeCreator.Parse(tableInfo.ColumnInfos[1].ColumnChecks[0].CheckClause);
 
@@ -151,10 +154,11 @@ public class ColumnCheckTests : IAsyncLifetime
         // Arrange
         var res = await _msSqlContainer.ExecScriptAsync(TableWithComplexColumnChecks).ConfigureAwait(true);
         res.Stderr.Should().BeEmpty();
-        await using var planto = new Planto(_msSqlContainer.GetConnectionString(), DbmsType.MsSql);
+        var executionTreeBuilder =
+            ExecutionTreeBuilderFactory.Create(_msSqlContainer.GetConnectionStringWithMultipleActiveResultSet(), true);
 
         // Act
-        var tableInfo = await planto.GetTableInfo(TableName);
+        var tableInfo = await executionTreeBuilder.CreateTableInfo(TableName);
         var columnCheckTreeCreator = new ColumnCheckSyntaxParser();
         var emailCheck = columnCheckTreeCreator.Parse(tableInfo.ColumnInfos[3].ColumnChecks[0].CheckClause);
 

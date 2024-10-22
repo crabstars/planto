@@ -16,6 +16,12 @@ public class PlantoOptionBuilder
         return this;
     }
 
+    public PlantoOptionBuilder SetCacheColumns(bool cacheColumns)
+    {
+        _options.CacheColumns = cacheColumns;
+        return this;
+    }
+    
     public PlantoOptionBuilder SetColumnCheckValueGenerator(bool useColumnCheckValueGenerator)
     {
         _options.ColumnCheckValueGenerator = useColumnCheckValueGenerator;

@@ -408,11 +408,11 @@ public class AllDataTypesTableTests : IAsyncLifetime
     public async Task AllTypesTable_CheckColumnInfo()
     {
         // Arrange
-        await using var planto =
-            new Planto(_msSqlContainer.GetConnectionStringWithMultipleActiveResultSet(), DbmsType.MsSql);
+        var executionTreeBuilder =
+            ExecutionTreeBuilderFactory.Create(_msSqlContainer.GetConnectionStringWithMultipleActiveResultSet());
 
         // Act
-        var res = await planto.GetTableInfo(TableName);
+        var res = await executionTreeBuilder.CreateTableInfo(TableName);
 
         // Assert
         res.ColumnInfos.Should().HaveCount(_columnInfos.Count);

@@ -12,4 +12,6 @@ public class PlantoOptions
     public string? TableSchema { get; set; }
 
     public bool ColumnCheckValueGenerator { get; set; } = true;
+    
+    public bool CacheColumns { get; set; }
 }

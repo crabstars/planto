@@ -6,7 +6,7 @@ Currently only supporting Sql Server(MsSql)
 ## NuGet
 
 https://www.nuget.org/packages/Planto or<br>
-`dotnet add package Planto --version 0.6.1`
+`dotnet add package Planto --version 0.7.0`
 
 ## What
 
@@ -106,11 +106,9 @@ new Planto(ConnectionString, DbmsType.MsSql,
 - Coming soon
 
 ## TODOs
-- cache columnInfo for tables
+
 - improve multiple unique constraints for a table (mssql)
 - Support special PKs for MsSql, like multiple PKs
 - Logs
-- comment functions
-- refactor
 - DeSerialize
 - NpgSql

@@ -3,6 +3,7 @@ using System.Text;
 using Planto.Column;
 using Planto.DatabaseConnectionHandler;
 using Planto.DatabaseImplementation.SqlServer.DataTypes;
+using Planto.ExecutionTree;
 using Planto.OptionBuilder;
 using Planto.Reflection;
 
@@ -13,7 +14,7 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler, string? optio
     private const string LastIdIntSql = "SELECT CAST(SCOPE_IDENTITY() AS INT) AS GeneratedID;";
     private const string LastIdDecimalSql = "SELECT SCOPE_IDENTITY() AS GeneratedID;";
     private const string SqlNull = "NULL";
-    private readonly MsSqlQueries _queries = new(optionsTableSchema);
+
     private static readonly Dictionary<string, Type> SqlToTypeMap = new()
     {
         { "int", typeof(int) },
@@ -49,7 +50,9 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler, string? optio
         { "geography", typeof(Geography) },
         { "geometry", typeof(Geometry) }
     };
-    
+
+    private readonly MsSqlQueries _queries = new(optionsTableSchema);
+
     /// <inheritdoc />
     public Type MapToSystemType(string sqlType)
     {
@@ -59,7 +62,7 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler, string? optio
             return result;
         throw new ArgumentException($"SQL Type '{sqlType}' not recognized.");
     }
-  
+
     /// <inheritdoc />
     public async Task<DbDataReader> GetColumnConstraints(string tableName)
     {
@@ -210,7 +213,7 @@ internal class MsSql(IDatabaseConnectionHandler connectionHandler, string? optio
         return executionNode.TableInfo.ColumnInfos
             .Where(c => AttributeHelper.GetValueToCustomData(matchingUserData, c.ColumnName) is not null
                         || (!c.IsComputed && (!c.IsIdentity.HasValue || !c.IsIdentity.Value)
-                            && (!c.IsNullable || c.ColumnConstraints.Any(cc => cc.IsUnique)))
+                                          && (!c.IsNullable || c.ColumnConstraints.Any(cc => cc.IsUnique)))
                         || c.ColumnChecks.Count != 0).ToList();
     }
 
