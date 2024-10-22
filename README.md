@@ -106,11 +106,10 @@ new Planto(ConnectionString, DbmsType.MsSql,
 - Coming soon
 
 ## TODOs
-- cache columnInfo for tables
+
+- cache columnInfo for tables => TODO tests
 - improve multiple unique constraints for a table (mssql)
 - Support special PKs for MsSql, like multiple PKs
 - Logs
-- comment functions
-- refactor
 - DeSerialize
 - NpgSql
