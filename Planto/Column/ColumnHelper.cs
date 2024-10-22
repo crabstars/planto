@@ -140,6 +140,22 @@ internal class ColumnHelper
         }
     }
 
+    /// <summary>
+    /// Retrieves column information for a specified table asynchronously.
+    /// </summary>
+    /// <param name="tableName">The name of the table for which to retrieve column information.</param>
+    /// <returns>
+    /// Containing the column information for the specified table.
+    /// </returns>
+    /// <remarks>
+    /// If the column information is cached, it returns the cached data. Otherwise, it queries the database
+    /// to retrieve the column information. Each column's values are mapped to properties of <see cref="ColumnInfo"/> 
+    /// using reflection and custom attributes. If a column is not found in the database, 
+    /// a <see cref="PlantoDbException"/> is thrown.
+    /// </remarks>
+    /// <exception cref="PlantoDbException">
+    /// Thrown when a column defined in the <see cref="ColumnInfo"/> properties is not found in the database.
+    /// </exception>
     internal async Task<IEnumerable<ColumnInfo>> GetColumInfos(string tableName)
     {
         if (CachedColumns != null &&
