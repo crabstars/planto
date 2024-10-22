@@ -11,23 +11,26 @@ namespace Planto.Column;
 /// </summary>
 internal class ColumnHelper
 {
-    
     private const string ForeignKey = "FOREIGN KEY";
     private const string PrimaryKey = "PRIMARY KEY";
     private const string Unique = "UNIQUE";
     private const string Check = "CHECK";
-    
+
+    private readonly IDictionary<string, IEnumerable<ColumnInfo>>? _cachedColumns;
     private readonly IDatabaseProviderHelper _dbProviderHelper;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ColumnHelper"/> class.
     /// </summary>
     /// <param name="dbProviderHelper">The database provider helper used to interact with the database.</param>
-    internal ColumnHelper(IDatabaseProviderHelper dbProviderHelper)
+    /// <param name="optionsCacheColumns"></param>
+    internal ColumnHelper(IDatabaseProviderHelper dbProviderHelper, bool optionsCacheColumns)
     {
+        if (optionsCacheColumns)
+            _cachedColumns = new Dictionary<string, IEnumerable<ColumnInfo>>();
         _dbProviderHelper = dbProviderHelper;
-    } 
-    
+    }
+
     /// <summary>
     /// Asynchronously adds column checks to the provided list of column information for the specified table.
     /// </summary>
@@ -68,7 +71,6 @@ internal class ColumnHelper
                 .Add(columnCheck);
         }
     }
-
 
     /// <summary>
     /// Asynchronously adds column constraints to the provided list of column information for the specified table.
@@ -137,32 +139,13 @@ internal class ColumnHelper
                 .Add(columnConstraint);
         }
     }
-    
-    /// <summary>
-    /// Can be used to determine which custom data should be provided
-    /// </summary>
-    /// <param name="tableName"></param>
-    /// <returns>Returns check clauses to all related tables which are needed to create an entry for the given table name</returns>
-    public async Task<IEnumerable<ColumnCheckClause>> AnalyzeColumnChecks(string tableName)
-    {
-        var executionTree = await _executionTreeBuilder.CreateExecutionTree(tableName, null);
-        return GetColumnChecks(executionTree);
-    }
-
-    internal IEnumerable<ColumnCheckClause> GetColumnChecks(ExecutionNode executionNode)
-    {
-        return executionNode.TableInfo.ColumnInfos.SelectMany(ci =>
-                ci.ColumnChecks.Select(cc =>
-                    new ColumnCheckClause(cc.CheckClause, cc.ColumnName, executionNode.TableName)))
-            .Concat(executionNode.Children.SelectMany(GetColumnChecks));
-    }
 
     internal async Task<IEnumerable<ColumnInfo>> GetColumInfos(string tableName)
     {
-        if (_cachedColumns != null && 
+        if (_cachedColumns != null &&
             _cachedColumns.TryGetValue(tableName, out var cachedColumns))
             return cachedColumns;
-        
+
         var columnInfos = new List<ColumnInfo>();
 
         await using var dataReader = await _dbProviderHelper.GetColumInfos(tableName);

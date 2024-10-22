@@ -1,13 +1,10 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.Reflection;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using Planto.Column;
 using Planto.DatabaseImplementation;
 using Planto.DatabaseImplementation.SqlServer;
 using Planto.Exceptions;
 using Planto.ExecutionTree;
 using Planto.OptionBuilder;
-using Planto.Table;
 
 [assembly: InternalsVisibleTo("Planto.Test")]
 
@@ -19,10 +16,8 @@ namespace Planto;
 public class Planto : IAsyncDisposable
 {
     private readonly IDatabaseProviderHelper _dbProviderHelper;
-    private readonly PlantoOptions _options;
-    private readonly IDictionary<string, IEnumerable<ColumnInfo>>? _cachedColumns;
-    private readonly ColumnHelper _columnHelper;
     private readonly ExecutionTreeBuilder _executionTreeBuilder;
+    private readonly PlantoOptions _options;
 
     public Planto(string connectionString, DbmsType dbmsType, Action<PlantoOptionBuilder>? configureOptions = null)
     {
@@ -30,8 +25,6 @@ public class Planto : IAsyncDisposable
         configureOptions?.Invoke(optionsBuilder);
         var connectionHandler = new DatabaseConnectionHandler.DatabaseConnectionHandler(connectionString);
         _options = optionsBuilder.Build();
-        if (_options.CacheColumns)
-            _cachedColumns = new Dictionary<string, IEnumerable<ColumnInfo>>();
         _dbProviderHelper = dbmsType switch
         {
             DbmsType.MsSql => new MsSql(connectionHandler, _options.TableSchema),
@@ -39,8 +32,9 @@ public class Planto : IAsyncDisposable
                 "Only NpgsqlConnection and SqlConnection are supported right now.\nConnection Type: "
                 + dbmsType)
         };
-        _columnHelper = new ColumnHelper(_dbProviderHelper);
-        _executionTreeBuilder = new ExecutionTreeBuilder(this, _options.MaxDegreeOfParallelism);
+        var columnHelper = new ColumnHelper(_dbProviderHelper, _options.CacheColumns);
+        _executionTreeBuilder = new ExecutionTreeBuilder(_options.MaxDegreeOfParallelism, columnHelper,
+            _options.ColumnCheckValueGenerator);
     }
 
     public async ValueTask DisposeAsync()
@@ -59,7 +53,8 @@ public class Planto : IAsyncDisposable
     {
         try
         {
-            return await _dbProviderHelper.CreateEntity<TCast>(await _executionTreeBuilder.CreateExecutionTree(tableName, null),
+            return await _dbProviderHelper.CreateEntity<TCast>(
+                await _executionTreeBuilder.CreateExecutionTree(tableName, null),
                 _options, data);
         }
         catch (Exception e)
@@ -68,4 +63,22 @@ public class Planto : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Can be used to determine which custom data should be provided
+    /// </summary>
+    /// <param name="tableName"></param>
+    /// <returns>Returns check clauses to all related tables which are needed to create an entry for the given table name</returns>
+    public async Task<IEnumerable<ColumnCheckClause>> AnalyzeColumnChecks(string tableName)
+    {
+        var executionTree = await _executionTreeBuilder.CreateExecutionTree(tableName, null);
+        return GetColumnChecks(executionTree);
+    }
+
+    private static IEnumerable<ColumnCheckClause> GetColumnChecks(ExecutionNode executionNode)
+    {
+        return executionNode.TableInfo.ColumnInfos.SelectMany(ci =>
+                ci.ColumnChecks.Select(cc =>
+                    new ColumnCheckClause(cc.CheckClause, cc.ColumnName, executionNode.TableName)))
+            .Concat(executionNode.Children.SelectMany(GetColumnChecks));
+    }
 }

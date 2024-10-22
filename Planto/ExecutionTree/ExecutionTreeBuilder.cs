@@ -1,4 +1,6 @@
+using Planto.Column;
 using Planto.Exceptions;
+using Planto.Table;
 
 namespace Planto.ExecutionTree;
 
@@ -7,18 +9,24 @@ namespace Planto.ExecutionTree;
 /// </summary>
 internal class ExecutionTreeBuilder
 {
+    private readonly ColumnHelper _columnHelper;
     private readonly int? _maxDegreeOfParallelism;
+    private readonly bool _optionsColumnCheckValueGenerator;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ExecutionTreeBuilder"/> class.
     /// </summary>
-    /// <param name="planto">The <see cref="Planto"/> instance used to access database-related operations.</param>
     /// <param name="maxDegreeOfParallelism">The maximum degree of parallelism for asynchronous operations.</param>
-    public ExecutionTreeBuilder(Planto planto, int? maxDegreeOfParallelism)
+    /// <param name="columnHelper"></param>
+    /// <param name="optionsColumnCheckValueGenerator"></param>
+    public ExecutionTreeBuilder(int? maxDegreeOfParallelism, ColumnHelper columnHelper,
+        bool optionsColumnCheckValueGenerator)
     {
         _maxDegreeOfParallelism = maxDegreeOfParallelism;
+        _columnHelper = columnHelper;
+        _optionsColumnCheckValueGenerator = optionsColumnCheckValueGenerator;
     }
-    
+
     /// <summary>
     /// Asynchronously creates an execution tree for the specified table, managing its relationships to other tables.
     /// </summary>
@@ -36,7 +44,7 @@ internal class ExecutionTreeBuilder
         var newExecutionNode = new ExecutionNode
         {
             TableName = tableName,
-            TableInfo = await _planto.CreateTableInfo(tableName),
+            TableInfo = await CreateTableInfo(tableName),
             Parent = parent
         };
         CheckCircularDependency(tableName, parent);
@@ -63,6 +71,23 @@ internal class ExecutionTreeBuilder
             }).ConfigureAwait(false);
 
         return newExecutionNode;
+    }
+
+    internal async Task<TableInfo> CreateTableInfo(string tableName)
+    {
+        var tableInfo = new TableInfo(tableName);
+
+        var columInfos = (await _columnHelper.GetColumInfos(tableName).ConfigureAwait(false)).ToList();
+        await _columnHelper.AddColumConstraints(columInfos, tableName).ConfigureAwait(false);
+        if (_optionsColumnCheckValueGenerator)
+            await _columnHelper.AddColumnChecks(columInfos, tableName).ConfigureAwait(false);
+        tableInfo.ColumnInfos.AddRange(columInfos);
+
+        // Validate table
+        if (tableInfo.ColumnInfos.Any(c => c.ColumnConstraints.Where(cc => cc.IsForeignKey).GroupBy(cc => cc.ColumnName)
+                .Any(gc => gc.Count() > 1)))
+            throw new NotSupportedException("Only tables with single foreign key constraints are supported.");
+        return tableInfo;
     }
 
 
